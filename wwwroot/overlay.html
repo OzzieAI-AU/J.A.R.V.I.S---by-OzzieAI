@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>J.A.R.V.I.S. Desktop Companion Overlay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <style>
+    :root {
+      --primary: #00d4ff;
+      --secondary: #ff9800;
+      --bg: rgba(3, 10, 18, 0.92);
+      --border: rgba(0, 212, 255, 0.35);
+      --font-hud: 'Orbitron', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: transparent;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 16px;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .overlay-dock {
+      width: 480px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0, 212, 255, 0.18), inset 0 0 20px rgba(0, 212, 255, 0.08);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: dropIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes dropIn {
+      from { transform: translateY(-40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .dock-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 8px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-hud);
+      font-size: 0.9rem;
+      letter-spacing: 1.5px;
+      color: var(--primary);
+    }
+    .mini-arc {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .mini-arc-core {
+      width: 6px;
+      height: 6px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #fff;
+    }
+    .telemetry-strip {
+      display: flex;
+      gap: 12px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      color: #79d6ff;
+    }
+    .actions-strip {
+      display: flex;
+      gap: 6px;
+    }
+    .quick-pill {
+      background: rgba(0, 212, 255, 0.08);
+      border: 1px solid rgba(0, 212, 255, 0.25);
+      border-radius: 4px;
+      color: #79d6ff;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      font-family: var(--font-hud);
+      transition: all 0.2s;
+    }
+    .quick-pill:hover {
+      background: rgba(0, 212, 255, 0.25);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .mic-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--primary);
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--primary);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .mic-btn.active {
+      background: rgba(255, 51, 51, 0.3);
+      border-color: #ff3333;
+      color: #ff3333;
+      box-shadow: 0 0 12px #ff3333;
+    }
+    .cmd-input {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 0.82rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+    }
+    .cmd-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    }
+    .send-btn {
+      background: rgba(0, 212, 255, 0.15);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-family: var(--font-hud);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .send-btn:hover {
+      background: var(--primary);
+      color: #000;
+    }
+    .response-card {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      max-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="overlay-dock">
+    <div class="dock-header">
+      <div class="brand">
+        <div class="mini-arc"><div class="mini-arc-core"></div></div>
+        <span>J.A.R.V.I.S. DOCK</span>
+      </div>
+      <div class="telemetry-strip">
+        <span id="tel-cpu">CPU: 12%</span>
+        <span id="tel-pwr">ARC: 3.14 GW</span>
+        <span id="tel-status" style="color:var(--primary);">STANDBY</span>
+      </div>
+    </div>
+
+    <!-- Quick Directives -->
+    <div class="actions-strip">
+      <button class="quick-pill" onclick="sendCmd('morning briefing')">☀️ BRIEFING</button>
+      <button class="quick-pill" onclick="sendCmd('diagnostics')">⚡ DIAGNOSTICS</button>
+      <button class="quick-pill" onclick="sendCmd('set scene ArcOrange')">💡 AMBIENT</button>
+      <button class="quick-pill" onclick="sendCmd('git status')">🐙 GIT</button>
+      <button class="quick-pill" onclick="window.open('/', '_blank')">🌐 FULL HUD</button>
+    </div>
+
+    <!-- Input Row -->
+    <div class="input-row">
+      <button class="mic-btn" id="overlay-mic" title="Voice Recognition">🎙</button>
+      <input type="text" class="cmd-input" id="overlay-input" placeholder="Directive for Jarvis (Alt+Space to focus)..." autofocus>
+      <button class="send-btn" id="overlay-send">SEND</button>
+    </div>
+
+    <!-- Response Window -->
+    <div class="response-card" id="overlay-response"></div>
+  </div>
+
+  <script>
+    let hub = null;
+    const inputEl = document.getElementById('overlay-input');
+    const responseEl = document.getElementById('overlay-response');
+    const micBtn = document.getElementById('overlay-mic');
+
+    async function initSignalR() {
+      hub = new signalR.HubConnectionBuilder()
+        .withUrl("/hub/jarvis")
+        .withAutomaticReconnect()
+        .build();
+
+      hub.on("OnTokenReceived", (token) => {
+        responseEl.style.display = 'block';
+        responseEl.textContent += token;
+        responseEl.scrollTop = responseEl.scrollHeight;
+      });
+
+      hub.on("OnSensorTelemetry", (t) => {
+        if (!t) return;
+        document.getElementById('tel-cpu').textContent = `CPU: ${t.cpuUsagePercent.toFixed(1)}%`;
+        document.getElementById('tel-pwr').textContent = `ARC: ${t.arcReactorOutputGigawatts.toFixed(2)} GW`;
+      });
+
+      hub.on("OnStreamComplete", (msg) => {
+        document.getElementById('tel-status').textContent = 'READY';
+      });
+
+      await hub.start();
+      document.getElementById('tel-status').textContent = 'LINKED';
+    }
+
+    function sendCmd(text) {
+      if (!text || !text.trim() || !hub) return;
+      responseEl.style.display = 'block';
+      responseEl.textContent = '';
+      document.getElementById('tel-status').textContent = 'SYNTHESIZING...';
+      hub.invoke("SendMessage", { message: text.trim(), speakResponse: true });
+    }
+
+    document.getElementById('overlay-send').addEventListener('click', () => {
+      sendCmd(inputEl.value);
+      inputEl.value = '';
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sendCmd(inputEl.value);
+        inputEl.value = '';
+      }
+    });
+
+    // Voice recognition
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec = null;
+    if (SpeechRec) {
+      rec = new SpeechRec();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.onstart = () => micBtn.classList.add('active');
+      rec.onend = () => micBtn.classList.remove('active');
+      rec.onresult = (e) => {
+        const text = e.results[0][0].transcript;
+        inputEl.value = text;
+        sendCmd(text);
+      };
+      micBtn.addEventListener('click', () => {
+        try { rec.start(); } catch {}
+      });
+    }
+
+    // Hotkey listener inside overlay
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        window.close();
+      }
+    });
+
+    initSignalR();
+  </script>
+</body>
+</html>

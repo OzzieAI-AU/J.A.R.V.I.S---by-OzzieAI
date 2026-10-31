@@ -1,0 +1,2833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>J.A.R.V.I.S. | Stark Industries Holographic Neural Environment</title>
+  
+  <!-- Futuristic Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/jarvis.css?v=16">
+
+  <!-- Core Libraries: Three.js and SignalR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+</head>
+<body>
+
+  <!-- ======================== FULL-SCREEN CANVASES ======================== -->
+  <div id="canvas-container">
+    <!-- WebGL 3D Holographic Neural Core & Arc Reactor Scene -->
+    <canvas id="webgl-canvas"></canvas>
+    <!-- Full-Screen 2D Canvas Dynamic Overlay for Reticles & Widgets -->
+    <canvas id="hud-canvas"></canvas>
+  </div>
+
+  <!-- ======================== STARK HUD UI LAYER ======================== -->
+  <div id="hud-ui-layer">
+    
+    <!-- TOP NAVIGATION & STATUS BAR -->
+    <header class="hud-header interactive">
+      <div class="brand-section">
+        <div class="arc-mini-reactor">
+          <div class="arc-mini-core"></div>
+        </div>
+        <div>
+          <div class="brand-title">J.A.R.V.I.S.</div>
+          <div class="brand-sub">STARK INDUSTRIES LAB SYSTEM • .NET 10</div>
+        </div>
+      </div>
+
+      <!-- Telemetry Status Pills -->
+      <div class="header-status-grid">
+        <div class="telemetry-pill">
+          <span class="label">ARC REACTOR:</span>
+          <span id="hud-arc-power">3.14 GW</span>
+        </div>
+        <div class="telemetry-pill">
+          <span class="label">CORE TEMP:</span>
+          <span id="hud-core-temp">48.6°C</span>
+        </div>
+        <div class="telemetry-pill">
+          <span class="status-dot"></span>
+          <span class="label">DEFENSE:</span>
+          <span>ACTIVE</span>
+        </div>
+        <div class="telemetry-pill" id="wake-word-badge" style="display:none;border-color:var(--secondary-color);color:var(--secondary-color);">
+          <span>WAKE WORD DETECTED</span>
+        </div>
+        <div class="telemetry-pill" id="speaking-indicator" style="display:none;border-color:var(--accent-color);color:var(--accent-color);">
+          <span>VOCAL SYNTHESIS</span>
+        </div>
+      </div>
+
+      <!-- Header Actions: Sensible, Tidy Sub-HUD Launchers -->
+      <div class="header-actions">
+        <div class="form-group" style="margin:0;">
+          <select id="header-agent-select" class="hud-btn" style="padding:6px 12px;text-transform:none;">
+            <option value="agent-jarvis-core">J.A.R.V.I.S. Core</option>
+          </select>
+        </div>
+
+        <!-- 3D Hologram Mode Dropdown -->
+        <div class="holo-dropdown-wrapper">
+          <button id="btn-holo-dropdown-toggle" class="hud-btn" style="border-color:var(--primary-color);" title="Change 3D Hologram Mode">
+            <span id="active-holo-mode-label">🪖 MARK HELMET</span>
+            <span style="font-size:0.65rem;">▼</span>
+          </button>
+          <div id="holo-mode-dropdown" class="holo-mode-dropdown hidden interactive">
+            <div class="holo-dropdown-item active" data-mode="MARK_HELMET">🪖 MARK HELMET</div>
+            <div class="holo-dropdown-item" data-mode="TACTICAL_GLOBE">🌍 GLOBAL DEFENSE</div>
+            <div class="holo-dropdown-item" data-mode="PROJECT_MATRIX">📐 3D BLUEPRINT MATRIX</div>
+            <div class="holo-dropdown-item" data-mode="NEURAL_CORE">⚛️ ARC & NEURAL CORE</div>
+            <div class="holo-dropdown-item" data-mode="QUANTUM_VORTEX">🌌 QUANTUM VORTEX</div>
+            <div class="holo-dropdown-item" data-mode="CAD_MODEL">📐 3D CAD VIEWER</div>
+          </div>
+        </div>
+
+        <!-- Main Sub-HUD Menu Trigger -->
+        <button id="btn-sub-hud-toggle" class="hud-btn hud-btn-primary" style="background:rgba(0,212,255,0.15);border-color:var(--primary-color);color:#fff;" title="Open Sub-HUD Tactical Protocols & Tool Suite">
+          <span>🎛️ SUB-HUD</span>
+        </button>
+
+        <!-- Stark Radio Deck Header Quick Launcher -->
+        <button id="btn-header-radio" class="hud-btn" style="border-color:#ffaa00;color:#ffaa00;background:rgba(255,170,0,0.1);" title="Open Stark Radio Station & YouTube Harvester">
+          <span>📻 RADIO</span>
+        </button>
+
+        <!-- Stark Cinema / Video Player Header Quick Launcher -->
+        <button id="btn-header-cinema" class="hud-btn" style="border-color:#ff0055;color:#ff3377;background:rgba(255,0,85,0.1);" title="Open Stark Cinema & YouTube Video Player" onclick="window.jarvisApp?.openCinemaDeck()">
+          <span>🎬 CINEMA</span>
+        </button>
+
+        <button id="btn-open-settings" class="hud-btn" title="Open Holographic Settings Modal">
+          <span>⚙ SETTINGS</span>
+        </button>
+        <button id="btn-logout" class="hud-btn hud-btn-danger" title="Lock Terminal">
+          <span>🔒 LOCK</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ======================== FLOATING SUB-HUD MENU ======================== -->
+    <div id="sub-hud-menu" class="sub-hud-menu hidden interactive">
+      <div class="sub-hud-header">
+        <div class="sub-hud-title">
+          <span class="status-dot"></span>
+          <span>STARK SUB-HUD TACTICAL PROTOCOLS</span>
+        </div>
+        <button id="btn-close-sub-hud" class="hud-btn" style="padding:2px 8px;font-size:0.75rem;">✕</button>
+      </div>
+      <div class="sub-hud-body">
+        
+        <!-- Section 1: Tactical Operations -->
+        <div>
+          <div class="sub-hud-section-label">⚡ TACTICAL OPERATIONS & WORKSPACE</div>
+          <div class="sub-hud-grid">
+            <div class="sub-hud-item" id="subhud-item-briefing">
+              <span class="item-icon">☀️</span>
+              <div class="item-text">
+                <span class="item-title">Executive Briefing</span>
+                <span class="item-desc">Morning calendar, projects & Arc status</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-screenscan">
+              <span class="item-icon">👁️</span>
+              <div class="item-text">
+                <span class="item-title">Screen Scan Perception</span>
+                <span class="item-desc">Multimodal visual code inspection</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-projects">
+              <span class="item-icon">📁</span>
+              <div class="item-text">
+                <span class="item-title">Projects Studio</span>
+                <span class="item-desc">Advanced initiatives & 3D blueprints</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-contacts">
+              <span class="item-icon">👥</span>
+              <div class="item-text">
+                <span class="item-title">Contacts Directory</span>
+                <span class="item-desc">Renee, Avengers & biometric dossiers</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-dock">
+              <span class="item-icon">🚀</span>
+              <div class="item-text">
+                <span class="item-title">Desktop Companion Dock</span>
+                <span class="item-desc">Global overlay dock (Alt+Space)</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-detach">
+              <span class="item-icon">🪟</span>
+              <div class="item-text">
+                <span class="item-title">Detach Multi-Monitor HUD</span>
+                <span class="item-desc">Independent floating cockpit window</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-terminal">
+              <span class="item-icon">💻</span>
+              <div class="item-text">
+                <span class="item-title">In-HUD Terminal Console</span>
+                <span class="item-desc">Interactive live PowerShell emulator</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-scratchpad">
+              <span class="item-icon">📋</span>
+              <div class="item-text">
+                <span class="item-title">Clipboard Sentinel</span>
+                <span class="item-desc">Auto-diagnose copied stack traces & JSON</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Autonomous Swarms & Intelligence -->
+        <div>
+          <div class="sub-hud-section-label">🤖 INTELLIGENCE & MULTI-AGENT SWARMS</div>
+          <div class="sub-hud-grid">
+            <div class="sub-hud-item" id="subhud-item-browser">
+              <span class="item-icon">🌐</span>
+              <div class="item-text">
+                <span class="item-title">Headless Browser Agent</span>
+                <span class="item-desc">Autonomous web navigation & research</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-swarm">
+              <span class="item-icon">👥</span>
+              <div class="item-text">
+                <span class="item-title">House Party Swarm</span>
+                <span class="item-desc">4 concurrent agents: Arch, Dev, Sec, QA</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-meeting">
+              <span class="item-icon">🎙️</span>
+              <div class="item-text">
+                <span class="item-title">Live Meeting Ear</span>
+                <span class="item-desc">Transcribe system audio & meeting minutes</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-codebase">
+              <span class="item-icon">🧠</span>
+              <div class="item-text">
+                <span class="item-title">Codebase Symbol Indexer</span>
+                <span class="item-desc">Search AST classes, methods & signatures</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-media">
+              <span class="item-icon">🎬</span>
+              <div class="item-text">
+                <span class="item-title">Video & Podcast Summarizer</span>
+                <span class="item-desc">Instant thesis & chapter breakdown</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-rea">
+              <span class="item-icon">🔬</span>
+              <div class="item-text">
+                <span class="item-title">REA Reversing Engine</span>
+                <span class="item-desc">Binary & network forensics toolchain</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-radio">
+              <span class="item-icon">📻</span>
+              <div class="item-text">
+                <span class="item-title">Radio Stark Deck</span>
+                <span class="item-desc">YouTube MP3/MP4 Harvester & Radio Station</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-cinema" onclick="window.jarvisApp?.openCinemaDeck()">
+              <span class="item-icon">🎬</span>
+              <div class="item-text">
+                <span class="item-title">Stark Cinema Player</span>
+                <span class="item-desc">YouTube Channels, Recommender & YT-DLP Video Vault</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Infrastructure, Diagnostics & Security -->
+        <div>
+          <div class="sub-hud-section-label">🛡️ INFRASTRUCTURE & SECURITY SENTINEL</div>
+          <div class="sub-hud-grid">
+            <div class="sub-hud-item" id="subhud-item-docker">
+              <span class="item-icon">🐳</span>
+              <div class="item-text">
+                <span class="item-title">Docker Manager</span>
+                <span class="item-desc">Monitor & control host containers</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-database">
+              <span class="item-icon">🗄️</span>
+              <div class="item-text">
+                <span class="item-title">Database SQL Explorer</span>
+                <span class="item-desc">Schema introspection & safe query runner</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-radar">
+              <span class="item-icon">📡</span>
+              <div class="item-text">
+                <span class="item-title">Network Perimeter Radar</span>
+                <span class="item-desc">ARP scanner & open port sensor</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-vault">
+              <span class="item-icon">🔒</span>
+              <div class="item-text">
+                <span class="item-title">Stark Encrypted Vault</span>
+                <span class="item-desc">AES-256 protected hardware secret store</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-snapshot">
+              <span class="item-icon">📦</span>
+              <div class="item-text">
+                <span class="item-title">Snapshot Backup Engine</span>
+                <span class="item-desc">ZIP archive & disaster recovery</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-achievements">
+              <span class="item-icon">🏆</span>
+              <div class="item-text">
+                <span class="item-title">Stark Achievements</span>
+                <span class="item-desc">Unlock badges & Iron Man milestones</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- J.A.R.V.I.S. INTEGRATION NOTE: Non-invasive External AI Ecosystems Bridge -->
+        <!-- Allows Jarvis to observe & orchestrate ArborNet, AgentLab, and AxiomCODAR -->
+        <!-- without changing any target application code or UI                        -->
+        <!-- ========================================================================= -->
+        <div>
+          <div class="sub-hud-section-label">⚡ EXTERNAL AI ECOSYSTEMS (JARVIS INTEGRATION)</div>
+          <div class="sub-hud-grid">
+            <div class="sub-hud-item" id="subhud-item-arbornet">
+              <span class="item-icon">🌲</span>
+              <div class="item-text">
+                <span class="item-title">ArborNet & NedK-Prime</span>
+                <span class="item-desc">Vector tensor benchmarks & model checkpoints</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-agentlab">
+              <span class="item-icon">🧪</span>
+              <div class="item-text">
+                <span class="item-title">AgentLab (AutoLab Pro)</span>
+                <span class="item-desc">Multi-agent workspace telemetry & test dispatch</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-axiom">
+              <span class="item-icon">📐</span>
+              <div class="item-text">
+                <span class="item-title">AxiomCODAR AST Studio</span>
+                <span class="item-desc">Roslyn compiler state & workspace inspection</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-ecosystem">
+              <span class="item-icon">🌐</span>
+              <div class="item-text">
+                <span class="item-title">Unified AI Suite Orchestrator</span>
+                <span class="item-desc">Launch all, terminate all, build whole suite</span>
+              </div>
+            </div>
+            <div class="sub-hud-item" id="subhud-item-voice-matrix">
+              <span class="item-icon">🎙️</span>
+              <div class="item-text">
+                <span class="item-title">1000x Voice Directives Matrix</span>
+                <span class="item-desc">Spoken verbal control cheat sheet & quick triggers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MAIN HOLOGRAPHIC WORKSPACE -->
+    <main class="hud-workspace">
+      
+      <!-- LEFT PANEL: TELEMETRY & SENSORS -->
+      <aside class="hud-panel interactive">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="status-dot"></span>
+            <span>SYSTEM DIAGNOSTICS</span>
+          </div>
+          <span style="font-size:0.7rem;color:var(--primary-color);">60 FPS</span>
+        </div>
+        <div class="panel-body">
+          <!-- CPU -->
+          <div class="telemetry-row">
+            <span class="telemetry-label">CPU CORE UTILIZATION</span>
+            <span class="telemetry-val" id="tel-cpu-val">12.5%</span>
+          </div>
+          <div class="hud-progress-bar">
+            <div class="hud-progress-fill" id="tel-cpu-bar" style="width:12.5%;"></div>
+          </div>
+
+          <!-- Memory -->
+          <div class="telemetry-row" style="margin-top:10px;">
+            <span class="telemetry-label">MEMORY LOAD</span>
+            <span class="telemetry-val" id="tel-mem-val">32% (512 MB)</span>
+          </div>
+          <div class="hud-progress-bar">
+            <div class="hud-progress-fill" id="tel-mem-bar" style="width:32%;"></div>
+          </div>
+
+          <!-- Network -->
+          <div class="telemetry-row" style="margin-top:10px;">
+            <span class="telemetry-label">SATELLITE DOWNLINK</span>
+            <span class="telemetry-val" id="tel-net-val">142 Kbps</span>
+          </div>
+
+          <!-- Magnetic Confinement -->
+          <div class="telemetry-row" style="margin-top:10px;">
+            <span class="telemetry-label">CONTAINMENT MATRIX</span>
+            <span class="telemetry-val" id="tel-containment-val">99.8%</span>
+          </div>
+
+          <!-- Core Status -->
+          <div class="telemetry-row" style="margin-top:10px;">
+            <span class="telemetry-label">ISOTOPE STABILITY</span>
+            <span class="telemetry-val" id="tel-core-status" style="color:var(--accent-color);">NOMINAL</span>
+          </div>
+
+          <!-- Ambient Noise -->
+          <div class="telemetry-row" style="margin-top:10px;">
+            <span class="telemetry-label">LAB AMBIENT NOISE</span>
+            <span class="telemetry-val" id="tel-noise-val">32 dB</span>
+          </div>
+
+          <!-- Live Biometric & Optical Scanner Widget -->
+          <div style="margin-top:14px;padding:10px;background:rgba(0,212,255,0.06);border:1px solid var(--border-hud);border-radius:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-family:var(--font-hud);font-size:0.7rem;color:var(--primary-color);">BIOMETRIC RECOGNITION:</div>
+              <button id="btn-toggle-cam" class="hud-btn" style="padding:2px 6px;font-size:0.65rem;border-color:var(--accent-color);color:var(--accent-color);">📹 OPTICAL</button>
+            </div>
+            <div id="cam-container" style="display:none;position:relative;margin-top:8px;border:1px solid #39ff14;border-radius:4px;overflow:hidden;height:120px;background:#000;">
+              <video id="biometric-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;"></video>
+              <canvas id="biometric-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+            </div>
+            <div style="font-size:0.85rem;color:#fff;font-weight:600;margin-top:6px;" id="biometric-name-label">Tony Stark (Owner)</div>
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#6fa5c2;margin-top:2px;">
+              <span>Clearance: Level 10 Active</span>
+              <span id="biometric-presence-badge" style="color:#39ff14;">PRESENCE: VERIFIED</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER PANEL: FLOATING HOLOGRAPHIC CHAT STREAM -->
+      <section class="center-hud-space">
+        <div class="hologram-cards-stream" id="chat-stream">
+          <!-- Initial Welcome Card -->
+          <div class="chat-card assistant-card interactive">
+            <div class="chat-card-header">
+              <span id="active-agent-name">J.A.R.V.I.S. Core</span>
+              <span>STANDBY</span>
+            </div>
+            <div class="chat-card-content">
+              Good evening, Sir. All holographic projections, .NET 10 real-time duplex hubs, and telemetry sensors are online.<br><br>
+              • <strong>Voice Synthesis & STT:</strong> Active (Microphone or Say <em>"Hey Jarvis"</em>)<br>
+              • <strong>Autonomous Agents & Skills:</strong> Ready in the Settings Studio<br>
+              • <strong>Reverse Engineer Anything (REA):</strong> Fully integrated for binary/protocol deconstruction<br><br>
+              How may I assist you with the workshop today?
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL: QUICK PROTOCOLS & REA LAUNCH -->
+      <aside class="hud-panel interactive">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="status-dot"></span>
+            <span>TACTICAL PROTOCOLS</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div style="font-family:var(--font-hud);font-size:0.75rem;color:var(--primary-color);margin-bottom:6px;">STARK SUIT CONTROLS:</div>
+          
+          <div class="quick-action-chip" id="chip-clean-slate">
+            <span>CLEAN SLATE PROTOCOL</span>
+            <span style="color:var(--danger-color);">ARM</span>
+          </div>
+          
+          <div class="quick-action-chip" id="chip-house-party">
+            <span>HOUSE PARTY PROTOCOL</span>
+            <span style="color:var(--secondary-color);">DEPLOY</span>
+          </div>
+          
+          <div class="quick-action-chip" id="chip-sentry-mode">
+            <span>SENTRY MODE PERIMETER</span>
+            <span style="color:var(--accent-color);">ENGAGE</span>
+          </div>
+
+          <div class="quick-action-chip" id="chip-contacts-open" style="border-color:var(--accent-color);">
+            <div style="display:flex;flex-direction:column;">
+              <span style="color:#fff;font-weight:700;">👥 CONTACTS DIRECTORY</span>
+              <small style="color:#79d6ff;">Renee, Avengers & VIPs</small>
+            </div>
+            <span style="color:var(--accent-color);">VIEW</span>
+          </div>
+
+          <div class="quick-action-chip" id="chip-rea-open" style="border-color:var(--primary-color);margin-top:8px;">
+            <div style="display:flex;flex-direction:column;">
+              <span style="color:#fff;font-weight:700;">REA ENGINE (morluto/rea)</span>
+              <small style="color:#79d6ff;">Reverse Engineer Anything</small>
+            </div>
+            <span style="color:var(--primary-color);">OPEN</span>
+          </div>
+
+          <!-- Active Agent Profile Card -->
+          <div style="margin-top:14px;padding:12px;background:rgba(0,212,255,0.06);border:1px solid var(--border-hud);border-radius:4px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="status-dot" id="active-agent-dot"></span>
+              <strong id="active-agent-role" style="font-family:var(--font-hud);font-size:0.8rem;color:#fff;">Master Butler</strong>
+            </div>
+            <p style="font-size:0.75rem;color:#8ab5cd;margin-top:6px;">British wit, laboratory diagnostics, and full MCP tool automation.</p>
+          </div>
+        </div>
+      <!-- IN-HUD INTERACTIVE TERMINAL DRAWER -->
+      <div id="in-hud-terminal-drawer" class="in-hud-terminal-drawer hidden interactive">
+        <div class="terminal-drawer-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="status-dot"></span>
+            <span>STARK TERMINAL SENTINEL SHELL (PowerShell)</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button id="btn-term-clear" class="hud-btn" style="padding:2px 6px;font-size:0.65rem;">CLEAR</button>
+            <button id="btn-term-close" class="hud-btn" style="padding:2px 6px;font-size:0.65rem;">✕</button>
+          </div>
+        </div>
+        <div id="terminal-output-window" class="terminal-output-window">J.A.R.V.I.S. Interactive Shell [Level 10 Sentinel Active]&#10;Type PowerShell commands, git, docker, or scripts below.</div>
+        <div class="terminal-input-row">
+          <span>PS &gt;</span>
+          <input type="text" id="terminal-cmd-input" class="terminal-input-field" placeholder="Enter shell command...">
+        </div>
+      </div>
+
+    </main>
+
+    <!-- BOTTOM COMMAND CENTER -->
+    <footer class="hud-footer interactive">
+      <!-- Stark Ambient Soundscape Controller Strip -->
+      <div class="soundscape-bar" style="display:flex;align-items:center;justify-content:space-between;padding:4px 16px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(0,212,255,0.15);font-size:0.72rem;font-family:var(--font-hud);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:var(--primary-color);">🎧 SOUNDSCAPE:</span>
+          <button id="btn-soundscape-arc" class="hud-btn" style="padding:2px 8px;font-size:0.65rem;">⚛️ ARC REACTOR</button>
+          <button id="btn-soundscape-rain" class="hud-btn" style="padding:2px 8px;font-size:0.65rem;">🌧️ CYBER RAIN</button>
+          <button id="btn-soundscape-turbine" class="hud-btn" style="padding:2px 8px;font-size:0.65rem;">💨 TURBINE</button>
+          <button id="btn-soundscape-off" class="hud-btn" style="padding:2px 8px;font-size:0.65rem;border-color:#ff3333;color:#ff3333;">✕ OFF</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="color:#79d6ff;font-size:0.65rem;">VOL:</span>
+          <input type="range" id="soundscape-vol" min="0" max="100" value="25" style="width:70px;accent-color:var(--primary-color);">
+        </div>
+      </div>
+
+      <!-- Audio Spectrum Equalizer Bar -->
+      <div class="audio-frequency-bar" id="audio-freq-bars">
+        <!-- 48 Dynamic frequency bars rendered via JavaScript -->
+      </div>
+
+      <!-- Input Command Bar -->
+      <div class="command-bar-wrapper">
+        <button class="mic-toggle-btn" id="mic-btn" title="Toggle Voice Recognition (Speech-to-Text)">
+          🎙
+        </button>
+        <input type="text" id="chat-input" class="command-input" placeholder="Speak or enter instruction for Jarvis (e.g. 'Status report', 'Deploy clean slate', or 'REA analyze')..." autocomplete="off">
+        <button class="command-send-btn" id="btn-send">
+          TRANSMIT
+        </button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ======================== SAFE AUTHENTICATION GATEWAY ======================== -->
+  <div id="login-overlay">
+    <div class="stark-login-box">
+      <div class="stark-reactor-gate" id="reactor-gate-trigger" title="Click to verify biometric scan">
+        <div class="stark-gate-core"></div>
+      </div>
+      <div>
+        <div class="login-title">STARK CLEARANCE GATE</div>
+        <div class="login-sub">RESTRICTED WORKSHOP • LEVEL 10 CLEARANCE ONLY</div>
+      </div>
+
+      <input type="password" id="login-passcode" class="passcode-input" placeholder="ENTER PASSCODE" value="Stark-10" autofocus>
+      
+      <button id="btn-stark-login" class="login-btn">
+        AUTHENTICATE PROTOCOL
+      </button>
+
+      <div id="login-error-msg" class="login-error"></div>
+      <div style="font-size:0.75rem;color:#5a8ea8;">Default Terminal Passcode: <code>Stark-10</code></div>
+    </div>
+  </div>
+
+  <!-- ======================== MASTER ADVANCED SETTINGS MODAL ======================== -->
+  <div id="settings-modal" class="hidden">
+    <div class="settings-box">
+      
+      <!-- Modal Header -->
+      <div class="settings-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="arc-mini-reactor">
+            <div class="arc-mini-core"></div>
+          </div>
+          <span style="font-family:var(--font-hud);font-size:1.1rem;color:#fff;letter-spacing:2px;">
+            J.A.R.V.I.S. ADVANCED CONFIGURATION STUDIO
+          </span>
+        </div>
+        <button id="btn-close-settings" class="hud-btn" style="padding:4px 10px;">✕</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <!-- Parent Category Tabs (Top-Level Topics) -->
+      <div class="settings-parent-nav">
+        <button class="parent-tab-btn active" data-parent="user">
+          <span class="parent-tab-icon">👤</span>
+          <span class="parent-tab-label">USER & PERSONALIZATION</span>
+        </button>
+        <button class="parent-tab-btn" data-parent="operations">
+          <span class="parent-tab-icon">📁</span>
+          <span class="parent-tab-label">WORKSPACE & OPERATIONS</span>
+        </button>
+        <button class="parent-tab-btn" data-parent="agents">
+          <span class="parent-tab-icon">🧠</span>
+          <span class="parent-tab-label">AI AGENTS & CAPABILITIES</span>
+        </button>
+        <button class="parent-tab-btn" data-parent="forensics">
+          <span class="parent-tab-icon">🛡️</span>
+          <span class="parent-tab-label">FORENSICS & PROTOCOLS</span>
+        </button>
+      </div>
+
+      <!-- Child Sub-Tabs Navigation Strip -->
+      <div class="settings-subtabs-nav" id="settings-subtabs-nav">
+        <!-- Sub-tabs for 'user' -->
+        <div class="subtabs-group active" data-parent-group="user">
+          <button class="tab-btn subtab-btn active" data-tab="about-me">👤 ABOUT ME</button>
+          <button class="tab-btn subtab-btn" data-tab="persona">🤖 BUTLER PERSONA</button>
+          <button class="tab-btn subtab-btn" data-tab="voice">🎙️ VOICE & AUDIO</button>
+          <button class="tab-btn subtab-btn" data-tab="display">🎨 DISPLAY & THEMES</button>
+        </div>
+
+        <!-- Sub-tabs for 'operations' -->
+        <div class="subtabs-group" data-parent-group="operations">
+          <button class="tab-btn subtab-btn" data-tab="projects">📁 PROJECTS MATRIX</button>
+          <button class="tab-btn subtab-btn" data-tab="calendar">📅 CALENDAR & TASKS</button>
+          <button class="tab-btn subtab-btn" data-tab="contacts">👥 SECURE CONTACTS</button>
+          <button class="tab-btn subtab-btn" data-tab="storage">💾 GHOST DRIVES & STORAGE</button>
+        </div>
+
+        <!-- Sub-tabs for 'agents' -->
+        <div class="subtabs-group" data-parent-group="agents">
+          <button class="tab-btn subtab-btn" data-tab="agents">🤖 AGENTS STUDIO</button>
+          <button class="tab-btn subtab-btn" data-tab="skills">⚡ SKILLS REGISTRY</button>
+          <button class="tab-btn subtab-btn" data-tab="tools">🔧 TOOLS & MCP</button>
+          <button class="tab-btn subtab-btn" data-tab="providers">🌐 LLM PROVIDERS</button>
+        </div>
+
+        <!-- Sub-tabs for 'forensics' -->
+        <div class="subtabs-group" data-parent-group="forensics">
+          <button class="tab-btn subtab-btn" data-tab="rea">🔍 REVERSE ENGINEER (REA)</button>
+          <button class="tab-btn subtab-btn" data-tab="predicates">🛡️ DEFENSE PREDICATES</button>
+        </div>
+      </div>
+
+      <!-- Modal Content Body -->
+      <div class="settings-content-wrapper">
+        
+        <!-- 1. PERSONA TAB -->
+        <div class="settings-tab-pane" id="pane-persona">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Bot Name</label>
+              <input type="text" id="cfg-bot-name">
+            </div>
+            <div class="form-group">
+              <label>User Call Sign</label>
+              <input type="text" id="cfg-user-name">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Master System Instructions & Butler Identity</label>
+            <textarea id="cfg-system-instructions" rows="4"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Creativity / Temperature (0.0 - 1.5)</label>
+              <input type="number" id="cfg-temperature" step="0.1" min="0" max="2">
+            </div>
+            <div class="form-group">
+              <label>Wit & Sarcasm Level (0.0 - 1.0)</label>
+              <input type="number" id="cfg-wit-level" step="0.1" min="0" max="1">
+            </div>
+            <div class="form-group">
+              <label>British Butler Formality (0.0 - 1.0)</label>
+              <input type="number" id="cfg-formality-level" step="0.1" min="0" max="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- ABOUT ME / USER PROFILE TAB -->
+        <div class="settings-tab-pane active" id="pane-about-me">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="color:#00ffcc;font-family:var(--font-hud);">USER PROFILE & PERSONALIZATION ("ABOUT ME")</h3>
+              <p style="font-size:0.8rem;color:#7eb2cc;">Personalize all AI responses. J.A.R.V.I.S. will know your name, honorific salutation ("Sir"), location, favorite color, and preferences.</p>
+            </div>
+            <button class="hud-btn hud-btn-primary" id="btn-save-user-profile" style="font-weight:700;">💾 SAVE ABOUT ME</button>
+          </div>
+
+          <div class="form-row" style="background:rgba(0,255,204,0.04);padding:14px;border:1px solid rgba(0,255,204,0.25);border-radius:6px;">
+            <div class="form-group">
+              <label>Full Legal Name</label>
+              <input type="text" id="profile-fullname" placeholder="e.g. Anthony Edward Stark" value="Tony Stark">
+            </div>
+            <div class="form-group">
+              <label>Preferred Name / Call Sign</label>
+              <input type="text" id="profile-preferredname" placeholder="e.g. Tony" value="Tony">
+            </div>
+            <div class="form-group">
+              <label>Mandatory Honorific Salutation</label>
+              <select id="profile-honorific" style="color:#00ffcc;font-weight:700;">
+                <option value="Sir" selected>Sir (Default British Butler Protocol)</option>
+                <option value="Boss">Boss (Edith / Friday casual tone)</option>
+                <option value="Commander">Commander (Tactical defense tone)</option>
+                <option value="Dr. Stark">Dr. Stark (Academic & Scientific)</option>
+                <option value="Master Stark">Master Stark (Classic Jarvis Butler)</option>
+                <option value="Captain">Captain</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="text" id="profile-dob" placeholder="e.g. May 29, 1970" value="May 29, 1970">
+            </div>
+            <div class="form-group">
+              <label>Residence & Primary Facility Address</label>
+              <input type="text" id="profile-address" placeholder="e.g. 10880 Malibu Point, Malibu, CA 90265" value="10880 Malibu Point, Malibu, CA 90265">
+            </div>
+            <div class="form-group">
+              <label>Aesthetic / Favorite Color</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="color" id="profile-color-picker" value="#00d4ff" style="width:44px;height:38px;padding:2px;cursor:pointer;">
+                <input type="text" id="profile-favoritecolor" value="#00d4ff" style="flex:1;">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Role / Professional Title</label>
+              <input type="text" id="profile-role" placeholder="e.g. Chief Executive & Lead Inventor" value="Chief Executive & Lead Inventor">
+            </div>
+            <div class="form-group">
+              <label>Organization / Agency</label>
+              <input type="text" id="profile-org" placeholder="e.g. Stark Industries / Avengers Initiative" value="Stark Industries / Avengers Initiative">
+            </div>
+            <div class="form-group">
+              <label>Security Clearance Level</label>
+              <input type="text" id="profile-clearance" placeholder="e.g. Level 10 (Supreme Command)" value="Level 10 (Supreme Command)">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Emergency Contact</label>
+              <input type="text" id="profile-emergency" placeholder="e.g. Pepper Potts (+1-555-0102)" value="Pepper Potts (+1-555-0102)">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label>Personal Preferences & Habits</label>
+              <input type="text" id="profile-preferences" placeholder="e.g. Double espresso, raw sugar, chlorophyll smoothies, vintage AC/DC rock music" value="Double espresso with raw sugar; chlorophyll drink; vintage AC/DC rock music; prompt, crisp, witty responses.">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Custom AI Instructions & How J.A.R.V.I.S. Should Respond to You</label>
+            <textarea id="profile-instructions" rows="3" placeholder="Instruct J.A.R.V.I.S. exactly how to treat you, what tone to take, and what background knowledge to always keep in mind.">Always address me with respect as 'Sir'. Keep answers razor sharp, witty, and loyal. Proactively track suit power, projects, and defenses.</textarea>
+          </div>
+        </div>
+
+        <!-- PROJECTS MANAGEMENT TAB -->
+        <div class="settings-tab-pane" id="pane-projects">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="color:#ff9800;font-family:var(--font-hud);">STARK ADVANCED PROJECT MANAGEMENT & BLUEPRINTS</h3>
+              <p style="font-size:0.8rem;color:#7eb2cc;">Manage multi-stage initiatives, 3D holographic matrices, autonomous agent task automation, and Ghost Drive project archives.</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="hud-btn" id="btn-settings-run-research" style="border-color:#ff9800;color:#ff9800;">🔬 RUN RESEARCH AGENT</button>
+              <button class="hud-btn hud-btn-primary" id="btn-settings-open-projects-drawer">📂 OPEN PROJECTS MATRIX</button>
+            </div>
+          </div>
+
+          <!-- Projects Stats Overview Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-top:10px;">
+            <div class="telemetry-pill" style="padding:10px;flex-direction:column;align-items:flex-start;border-color:rgba(255,152,0,0.4);">
+              <span class="label">ACTIVE INITIATIVES</span>
+              <span id="stat-proj-count" style="font-size:1.3rem;font-weight:700;color:#ff9800;">3 INITIATIVES</span>
+            </div>
+            <div class="telemetry-pill" style="padding:10px;flex-direction:column;align-items:flex-start;border-color:rgba(0,255,204,0.4);">
+              <span class="label">AUTOMATED TASKS</span>
+              <span id="stat-proj-tasks" style="font-size:1.3rem;font-weight:700;color:#00ffcc;">9 TASKS</span>
+            </div>
+            <div class="telemetry-pill" style="padding:10px;flex-direction:column;align-items:flex-start;border-color:rgba(0,212,255,0.4);">
+              <span class="label">GHOST DRIVE REPO</span>
+              <span id="stat-proj-files" style="font-size:1.3rem;font-weight:700;color:#00d4ff;">Projects/</span>
+            </div>
+          </div>
+
+          <!-- Projects List Container in Settings -->
+          <div id="settings-projects-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:14px;margin-top:12px;"></div>
+        </div>
+
+        <!-- 2. CALENDAR & TASKS TAB -->
+        <div class="settings-tab-pane" id="pane-calendar">
+          <div>
+            <h3 style="color:#fff;font-family:var(--font-hud);">STARK TACTICAL CALENDAR & APPOINTMENTS</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">Schedule meetings, briefings, and deadlines. Verbal and HUD reminders repeat until dismissed.</p>
+          </div>
+
+          <!-- Quick Appointment Form -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Appointment Title</label>
+              <input type="text" id="new-appt-title" placeholder="e.g. Briefing with Renee">
+            </div>
+            <div class="form-group">
+              <label>Attendees</label>
+              <input type="text" id="new-appt-attendees" placeholder="e.g. Renee, Rhodey">
+            </div>
+            <div class="form-group">
+              <label>Date & Time</label>
+              <input type="datetime-local" id="new-appt-time">
+            </div>
+            <div class="form-group">
+              <label>Lead Reminder (Minutes)</label>
+              <input type="number" id="new-appt-lead" value="15" min="1" max="1440">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Description / Agenda</label>
+              <input type="text" id="new-appt-desc" placeholder="e.g. Discuss Global Domination and workshop expansion">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;grid-column:1 / -1;">
+              <button class="hud-btn hud-btn-primary" id="btn-create-appointment">+ SCHEDULE APPOINTMENT</button>
+            </div>
+          </div>
+
+          <!-- Appointments Table -->
+          <div class="hud-table-wrapper" style="margin-top:14px;">
+            <table class="hud-table" id="table-appointments">
+              <thead>
+                <tr>
+                  <th>TITLE</th>
+                  <th>ATTENDEES</th>
+                  <th>SCHEDULED TIME</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- Autonomous Agent Task Manager -->
+          <div style="margin-top:24px;">
+            <h3 style="color:#fff;font-family:var(--font-hud);">AUTONOMOUS AGENT TASK MANAGER & SCHEDULER</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">Deploy agents to autonomously run research or surveillance recurring times per day in the background.</p>
+          </div>
+
+          <!-- Create Task Form -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Task Name</label>
+              <input type="text" id="new-task-name" placeholder="e.g. AI Breakthrough Scan">
+            </div>
+            <div class="form-group">
+              <label>Assigned Agent</label>
+              <select id="new-task-agent"></select>
+            </div>
+            <div class="form-group">
+              <label>Frequency (Runs Per Day)</label>
+              <input type="number" id="new-task-runs" value="7" min="1" max="48">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Research Topic / Prompt Directive</label>
+              <input type="text" id="new-task-directive" placeholder="e.g. Latest breakthroughs in Artificial Intelligence and multi-modal models">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;grid-column:1 / -1;">
+              <button class="hud-btn hud-btn-primary" id="btn-create-task">+ DEPLOY RECURRING TASK</button>
+            </div>
+          </div>
+
+          <!-- Tasks Table -->
+          <div class="hud-table-wrapper" style="margin-top:14px;">
+            <table class="hud-table" id="table-tasks">
+              <thead>
+                <tr>
+                  <th>TASK NAME</th>
+                  <th>AGENT</th>
+                  <th>FREQUENCY</th>
+                  <th>NEXT RUN</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CONTACTS DIRECTORY TAB -->
+        <div class="settings-tab-pane" id="pane-contacts">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="color:#fff;font-family:var(--font-hud);">STARK SECURE CONTACTS DIRECTORY</h3>
+              <p style="font-size:0.8rem;color:#7eb2cc;">Manage Avengers, VIPs, and external partners. Cross-referenced with appointment scheduler, MCP tools, and LLMs.</p>
+            </div>
+            <button class="hud-btn hud-btn-primary" id="btn-settings-add-contact" style="font-weight:700;">+ NEW CONTACT</button>
+          </div>
+
+          <!-- Filter & Search Bar in Settings -->
+          <div style="display:flex;gap:12px;align-items:center;margin-top:14px;background:rgba(0,212,255,0.06);padding:10px 14px;border:1px solid var(--border-hud);border-radius:4px;flex-wrap:wrap;">
+            <input type="text" id="settings-contacts-search" placeholder="🔍 Search contacts by name, alias, email, phone, role, tags..." style="flex:1;min-width:240px;">
+            <div class="contacts-tag-filters" id="settings-contact-tag-filters" style="margin:0;">
+              <button class="contact-filter-btn active" data-filter="ALL">ALL</button>
+              <button class="contact-filter-btn" data-filter="VIP">VIP</button>
+              <button class="contact-filter-btn" data-filter="AVENGERS">AVENGERS</button>
+              <button class="contact-filter-btn" data-filter="STARK IND">STARK IND</button>
+              <button class="contact-filter-btn" data-filter="EXECUTIVE">EXECUTIVE</button>
+              <button class="contact-filter-btn" data-filter="EMERGENCY">EMERGENCY</button>
+            </div>
+          </div>
+
+          <!-- Contacts Table -->
+          <div style="margin-top:16px;max-height:480px;overflow-y:auto;">
+            <table class="hud-table" id="table-contacts-settings">
+              <thead>
+                <tr>
+                  <th>AVATAR / CLR</th>
+                  <th>NAME & CALL SIGN</th>
+                  <th>ROLE & ORGANIZATION</th>
+                  <th>PHONE NUMBERS</th>
+                  <th>EMAIL ADDRESSES</th>
+                  <th>TAGS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="table-contacts-tbody">
+                <!-- Dynamically rendered -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. GHOST DRIVES & STORAGE TAB -->
+        <div class="settings-tab-pane" id="pane-storage">
+          <div>
+            <h3 style="color:#fff;font-family:var(--font-hud);">STORAGE TELEMETRY & GHOST DRIVES</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">Real-time host drive monitoring, low-space alert matrix, and holographic Ghost Drive partitions.</p>
+          </div>
+
+          <!-- Dynamic Drive Cards Grid -->
+          <div id="storage-drives-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:12px;margin-top:10px;"></div>
+
+          <!-- Low Space Alert Config -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:12px;border:1px solid var(--border-hud);border-radius:4px;margin-top:14px;">
+            <div class="form-group">
+              <label>Low Space Alert Threshold (%)</label>
+              <input type="number" id="cfg-storage-threshold-pct" value="15" min="1" max="50">
+            </div>
+            <div class="form-group">
+              <label>Low Space Alert Threshold (GB)</label>
+              <input type="number" id="cfg-storage-threshold-gb" value="10" min="1" max="200">
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:24px;">
+              <input type="checkbox" id="cfg-storage-enable-alerts" checked>
+              <label for="cfg-storage-enable-alerts" style="margin:0;">Enable Low Space Audio/UI Alerts</label>
+            </div>
+          </div>
+
+          <!-- Ghost Drives Manager -->
+          <div style="margin-top:20px;">
+            <h4 style="color:#fff;font-family:var(--font-hud);">GHOST DRIVES (HOLOGRAPHIC VIRTUAL MOUNTS)</h4>
+            <p style="font-size:0.75rem;color:#7eb2cc;">Create virtual sandboxes and mapped storage volumes for secure agent file I/O and telemetry archives.</p>
+          </div>
+
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Drive Name</label>
+              <input type="text" id="new-ghost-name" placeholder="e.g. STARK-LAB-EXT">
+            </div>
+            <div class="form-group">
+              <label>Virtual Tag</label>
+              <input type="text" id="new-ghost-tag" placeholder="e.g. GHOST-V3">
+            </div>
+            <div class="form-group">
+              <label>Max Capacity (GB)</label>
+              <input type="number" id="new-ghost-maxgb" value="10" min="1" max="500">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Mount Folder Path (Leave blank for default GhostDrives folder)</label>
+              <input type="text" id="new-ghost-path" placeholder="C:\Users\Jingl\Desktop\OzzieAI Code\OzzieAI.Jarvis\GhostDrives\STARK-LAB-EXT">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;grid-column:1 / -1;">
+              <button class="hud-btn hud-btn-primary" id="btn-create-ghost-drive">+ MOUNT GHOST DRIVE</button>
+            </div>
+          </div>
+
+          <!-- Ghost Drives Table -->
+          <div class="hud-table-wrapper" style="margin-top:14px;">
+            <table class="hud-table" id="table-ghost-drives">
+              <thead>
+                <tr>
+                  <th>TAG</th>
+                  <th>NAME</th>
+                  <th>PATH</th>
+                  <th>USED</th>
+                  <th>MAX</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- Ghost Drive Local File Explorer -->
+          <div style="margin-top:20px;">
+            <h4 style="color:#fff;font-family:var(--font-hud);">GHOST DRIVE FILE EXPLORER</h4>
+            <div style="display:flex;gap:10px;margin-top:8px;">
+              <select id="select-ghost-explorer" style="flex:1;"></select>
+              <button class="hud-btn" id="btn-refresh-files">🔄 REFRESH FILES</button>
+            </div>
+            <div id="ghost-files-list" style="margin-top:10px;max-height:200px;overflow-y:auto;border:1px solid var(--border-hud);padding:8px;background:rgba(0,0,0,0.4);border-radius:4px;"></div>
+          </div>
+        </div>
+
+        <!-- 4. PREDICATES & MEMORIES TAB -->
+        <div class="settings-tab-pane" id="pane-predicates">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h3 style="color:#fff;font-family:var(--font-hud);">ACTIVE PREDICATES & REAL-TIME STATE</h3>
+              <p style="font-size:0.8rem;color:#7eb2cc;">Dynamic Key-Value facts and states injected into prompt context at all times.</p>
+            </div>
+          </div>
+
+          <!-- Add Predicate Form -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Predicate Key</label>
+              <input type="text" id="new-predicate-key" placeholder="e.g. IronManSuitMode">
+            </div>
+            <div class="form-group">
+              <label>Predicate Value</label>
+              <input type="text" id="new-predicate-value" placeholder="e.g. Stealth Reconnaissance">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <input type="text" id="new-predicate-category" placeholder="Suit, Defense, Identity" value="Protocol">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="new-predicate-desc" placeholder="Brief explanation">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn hud-btn-primary" id="btn-add-predicate">+ SAVE PREDICATE</button>
+            </div>
+          </div>
+
+          <!-- Predicates Table -->
+          <div class="hud-table-wrapper">
+            <table class="hud-table" id="table-predicates">
+              <thead>
+                <tr>
+                  <th>KEY</th>
+                  <th>VALUE</th>
+                  <th>CATEGORY</th>
+                  <th>DESCRIPTION</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. AGENTS STUDIO TAB -->
+        <div class="settings-tab-pane" id="pane-agents">
+          <div>
+            <h3 style="color:#fff;font-family:var(--font-hud);">AUTONOMOUS AGENTS STUDIO</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">View, customize, create, and hot-swap active Agents with dedicated skills and tools.</p>
+          </div>
+
+          <!-- Create Agent Form -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Agent Name</label>
+              <input type="text" id="new-agent-name" placeholder="e.g. E.D.I.T.H. Tactical">
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <input type="text" id="new-agent-role" placeholder="e.g. Orbital Satellite Surveillance">
+            </div>
+            <div class="form-group">
+              <label>Tone</label>
+              <input type="text" id="new-agent-tone" placeholder="e.g. Tactical & Alert" value="Tactical">
+            </div>
+            <div class="form-group">
+              <label>Avatar Color (Hex)</label>
+              <input type="text" id="new-agent-color" placeholder="#00d4ff" value="#00d4ff">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Agent System Instructions</label>
+              <textarea id="new-agent-prompt" rows="2" placeholder="Describe the personality, operational directives, and decision-making logic of this agent..."></textarea>
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn hud-btn-primary" id="btn-create-agent">+ CREATE AGENT</button>
+            </div>
+          </div>
+
+          <!-- Agents Card Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:16px;" id="agents-card-grid"></div>
+        </div>
+
+        <!-- 4. SKILLS REGISTRY TAB -->
+        <div class="settings-tab-pane" id="pane-skills">
+          <div>
+            <h3 style="color:#fff;font-family:var(--font-hud);">SKILLS REGISTRY & WORKFLOW PLAYBOOKS</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">Define multi-step procedures, cheatsheets, and domain-specific knowledge assigned to Agents.</p>
+          </div>
+
+          <!-- Create Skill Form -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Skill Name</label>
+              <input type="text" id="new-skill-name" placeholder="e.g. Quantum Nano-Synthesis">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <input type="text" id="new-skill-category" placeholder="Engineering, Defense, Software" value="Engineering">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Description</label>
+              <input type="text" id="new-skill-desc" placeholder="Brief summary of the skill">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Instructions & Playbook (Markdown Workflow)</label>
+              <textarea id="new-skill-instructions" rows="3" placeholder="1. Query telemetry\n2. Execute calculations\n3. Deliver report"></textarea>
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn hud-btn-primary" id="btn-create-skill">+ REGISTER SKILL</button>
+            </div>
+          </div>
+
+          <!-- Skills Table -->
+          <div class="hud-table-wrapper">
+            <table class="hud-table" id="table-skills">
+              <thead>
+                <tr>
+                  <th>NAME</th>
+                  <th>CATEGORY</th>
+                  <th>DESCRIPTION</th>
+                  <th>PLAYBOOK SNIPPET</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 5. TOOLS & MCP TAB -->
+        <div class="settings-tab-pane" id="pane-tools">
+          <div>
+            <h3 style="color:#fff;font-family:var(--font-hud);">TOOLS ENGINE & MCP SENSOR HUB</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">Create and test custom tools, and configure real-time Model Context Protocol sensor streaming.</p>
+          </div>
+
+          <!-- Live Tool Test Runner -->
+          <div style="background:rgba(0,212,255,0.08);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <h4 style="color:#fff;font-family:var(--font-hud);margin-bottom:10px;">TEST RUN TOOL</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Select Tool</label>
+                <select id="test-tool-select"></select>
+              </div>
+              <div class="form-group">
+                <label>JSON Arguments</label>
+                <input type="text" id="test-tool-args" placeholder='{"metric":"power"} or {"protocol":"CleanSlate"}'>
+              </div>
+              <div class="form-group" style="justify-content:flex-end;">
+                <button class="hud-btn hud-btn-primary" id="btn-test-tool">EXECUTE</button>
+              </div>
+            </div>
+            <pre id="test-tool-output" style="background:#010a14;padding:10px;border-radius:4px;margin-top:10px;font-family:var(--font-mono);font-size:0.75rem;color:#6ee7b7;max-height:140px;overflow-y:auto;">Tool output will display here...</pre>
+          </div>
+
+          <!-- Create Tool Form -->
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group">
+              <label>Tool Name</label>
+              <input type="text" id="new-tool-name" placeholder="e.g. lab_light_control">
+            </div>
+            <div class="form-group">
+              <label>Execution Type</label>
+              <select id="new-tool-type">
+                <option value="Internal">Internal C# Engine</option>
+                <option value="HttpEndpoint">HTTP Webhook / Microservice</option>
+                <option value="McpRpc">MCP JSON-RPC Server</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Endpoint URL (for HTTP/MCP)</label>
+              <input type="text" id="new-tool-endpoint" placeholder="http://localhost:5200/api/tool">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Description</label>
+              <input type="text" id="new-tool-desc" placeholder="What this tool does">
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>JSON Schema Parameters</label>
+              <input type="text" id="new-tool-schema" placeholder='{"type":"object","properties":{"arg1":{"type":"string"}}}' value="{}">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn hud-btn-primary" id="btn-create-tool">+ CREATE TOOL</button>
+            </div>
+          </div>
+
+          <!-- Tools Table -->
+          <div class="hud-table-wrapper">
+            <table class="hud-table" id="table-tools">
+              <thead>
+                <tr>
+                  <th>NAME</th>
+                  <th>TYPE</th>
+                  <th>DESCRIPTION</th>
+                  <th>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- MCP Sensor Settings -->
+          <h4 style="color:#fff;font-family:var(--font-hud);margin-top:10px;">MCP SENSOR SERVICE SETTINGS</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>MCP Server URL</label>
+              <input type="text" id="cfg-mcp-url">
+            </div>
+            <div class="form-group">
+              <label>Sensor Poll Rate (ms)</label>
+              <input type="number" id="cfg-sensor-poll" min="200" max="5000" step="100">
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:24px;">
+              <input type="checkbox" id="cfg-enable-sys-sensors">
+              <label for="cfg-enable-sys-sensors" style="margin:0;">System Sensors (CPU/RAM)</label>
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:24px;">
+              <input type="checkbox" id="cfg-enable-arc-sensors">
+              <label for="cfg-enable-arc-sensors" style="margin:0;">Arc Reactor Simulation</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. LLM PROVIDERS TAB -->
+        <div class="settings-tab-pane" id="pane-providers">
+          <div class="form-group">
+            <label>Active Cognitive Provider</label>
+            <select id="cfg-active-provider">
+              <option value="OpenAI">OpenAI (GPT-4o, o1, o3)</option>
+              <option value="Claude">Anthropic Claude (Claude 3.5 Sonnet)</option>
+              <option value="Gemini">Google Gemini (Gemini 2.5 Flash / Pro)</option>
+              <option value="Groq">Groq (Ultra-Fast Llama 3.3 70B)</option>
+              <option value="Ollama">Ollama (Local Private LLM)</option>
+              <option value="DeepSeek">DeepSeek (DeepSeek-Chat)</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>OpenAI API Key</label>
+              <input type="password" id="cfg-openai-key" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+              <label>OpenAI Model</label>
+              <input type="text" id="cfg-openai-model" value="gpt-4o">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Anthropic Claude API Key</label>
+              <input type="password" id="cfg-claude-key" placeholder="sk-ant-...">
+            </div>
+            <div class="form-group">
+              <label>Claude Model</label>
+              <input type="text" id="cfg-claude-model" value="claude-3-5-sonnet-20241022">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Google Gemini API Key</label>
+              <input type="password" id="cfg-gemini-key" placeholder="AIzaSy...">
+            </div>
+            <div class="form-group">
+              <label>Gemini Model</label>
+              <input type="text" id="cfg-gemini-model" value="gemini-2.5-flash">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Groq API Key</label>
+              <input type="password" id="cfg-groq-key" placeholder="gsk_...">
+            </div>
+            <div class="form-group">
+              <label>Groq Model</label>
+              <input type="text" id="cfg-groq-model" value="llama-3.3-70b-versatile">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Ollama Base URL</label>
+              <input type="text" id="cfg-ollama-url" value="http://localhost:11434">
+            </div>
+            <div class="form-group">
+              <label>Ollama Model</label>
+              <input type="text" id="cfg-ollama-model" value="llama3.2">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>DeepSeek API Key</label>
+              <input type="password" id="cfg-deepseek-key" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+              <label>DeepSeek Model</label>
+              <input type="text" id="cfg-deepseek-model" value="deepseek-chat">
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. VOICE & STT TAB -->
+        <div class="settings-tab-pane" id="pane-voice">
+          <h4 style="color:#fff;font-family:var(--font-hud);">TEXT-TO-SPEECH (TTS) CONFIGURATION</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>TTS Synthesis Engine</label>
+              <select id="cfg-tts-engine">
+                <option value="Browser">Client Web Speech API (Zero-Latency Browser Voices)</option>
+                <option value="OpenAI">OpenAI Cloud TTS (Onyx Butler Voice)</option>
+                <option value="ElevenLabs">ElevenLabs (High-Fidelity British Voice)</option>
+              </select>
+            </div>
+            <div class="form-group" id="grp-browser-voice">
+              <label>Browser Voice (British Butler Recommended)</label>
+              <select id="cfg-browser-voice"></select>
+            </div>
+            <div class="form-group" id="grp-openai-voice" style="display:none;">
+              <label>OpenAI Cloud Voice (Onyx = Paul Bettany / Jarvis)</label>
+              <select id="cfg-openai-tts-voice">
+                <option value="onyx">🌟 Onyx (Deep, Calm British Butler - True Jarvis)</option>
+                <option value="echo">Echo (Authoritative Balanced Male)</option>
+                <option value="alloy">Alloy (Neutral Studio)</option>
+                <option value="fable">Fable (Warm Expressive)</option>
+                <option value="nova">Nova (Energetic Female - FRIDAY)</option>
+                <option value="shimmer">Shimmer (Clear Female)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Pitch</label>
+              <input type="range" id="cfg-browser-pitch" min="0.5" max="1.5" step="0.05" value="1.0">
+            </div>
+            <div class="form-group">
+              <label>Speech Rate</label>
+              <input type="range" id="cfg-browser-rate" min="0.5" max="1.5" step="0.05" value="1.05">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn hud-btn-primary" id="btn-test-voice">TEST VOICE PREVIEW</button>
+            </div>
+          </div>
+
+          <div class="form-row row-elevenlabs" id="row-elevenlabs">
+            <div class="form-group">
+              <label>ElevenLabs API Key</label>
+              <input type="password" id="cfg-elevenlabs-key" placeholder="xi-api-key">
+            </div>
+            <div class="form-group">
+              <label>ElevenLabs Voice ID (British Butler Preset)</label>
+              <input type="text" id="cfg-elevenlabs-voice" value="pNInz6obpgDQGcFmaJgB">
+            </div>
+          </div>
+
+          <h4 style="color:#fff;font-family:var(--font-hud);margin-top:14px;">TTS SYMBOL EXCLUSION & PRONUNCIATION SANITIZER</h4>
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group" style="grid-column:1 / -1;">
+              <label>Symbol Exclusion List (Characters & symbols TTS skips completely without vocalizing)</label>
+              <input type="text" id="cfg-tts-exclusion" value="* _ # ~ ` | [ ] ( ) { } < > \ / @ ^ = + • › » « $ % & ;">
+              <small style="color:#7eb2cc;font-size:0.75rem;margin-top:4px;">Prevents voice synthesizer from annoyingly pronouncing "asterisk asterisk", "hash", "backtick", "pipe", "bullet", or bracket characters.</small>
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:10px;">
+              <input type="checkbox" id="cfg-tts-sanitization-enabled" checked>
+              <label for="cfg-tts-sanitization-enabled" style="margin:0;">Enable TTS Sanitization Engine</label>
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:10px;">
+              <input type="checkbox" id="cfg-tts-strip-markdown" checked>
+              <label for="cfg-tts-strip-markdown" style="margin:0;">Strip Markdown Formatting (*, #, `, tables)</label>
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:10px;">
+              <input type="checkbox" id="cfg-tts-strip-emojis" checked>
+              <label for="cfg-tts-strip-emojis" style="margin:0;">Strip Emojis</label>
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn" id="btn-reset-tts-symbols" style="font-size:0.75rem;">RESET TO DEFAULTS</button>
+            </div>
+          </div>
+
+          <h4 style="color:#fff;font-family:var(--font-hud);margin-top:14px;">SPEECH-TO-TEXT (STT) & WAKE WORD</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>STT Input Engine</label>
+              <select id="cfg-stt-engine">
+                <option value="Browser">Web Speech Recognition (Continuous Browser API)</option>
+                <option value="GroqWhisper">Groq Whisper (Cloud High-Accuracy)</option>
+                <option value="OpenAiWhisper">OpenAI Whisper-1</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Wake-Word</label>
+              <input type="text" id="cfg-wake-word" value="jarvis">
+            </div>
+            <div class="form-group" style="flex-direction:row;align-items:center;gap:10px;padding-top:24px;">
+              <input type="checkbox" id="cfg-wake-word-enabled" checked>
+              <label for="cfg-wake-word-enabled" style="margin:0;">Enable "Hey Jarvis" Detection</label>
+            </div>
+            <div class="form-group" style="grid-column:1 / -1;margin-top:8px;">
+              <label>STT Speech Exclusions & Noise Filter (Phrases & filler words to ignore/filter out)</label>
+              <input type="text" id="cfg-stt-exclusion" value="um, uh, ah, erm, like, you know, thank you for watching, subtitles by, [music], [applause]">
+              <small style="color:#7eb2cc;font-size:0.75rem;margin-top:4px;">Strips vocal filler words, background TV chatter, and accidental utterances before sending prompts to J.A.R.V.I.S.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. REA (REVERSE ENGINEER ANYTHING) TAB -->
+        <div class="settings-tab-pane" id="pane-rea">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="color:#00d4ff;font-family:var(--font-hud);">REVERSE ENGINEER ANYTHING (REA)</h3>
+              <p style="font-size:0.8rem;color:#7eb2cc;">Integrated REA binary inspection framework (morluto/rea). Decompile assemblies, inspect exported symbols, strings, and protocol payloads.</p>
+            </div>
+            <span class="telemetry-pill" style="border-color:#00d4ff;color:#00d4ff;font-size:0.75rem;padding:4px 10px;">FRAMEWORK: morluto/rea</span>
+          </div>
+
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:14px;border:1px solid var(--border-hud);border-radius:4px;">
+            <div class="form-group" style="flex:2;">
+              <label>Target File, Binary, or Assembly Path</label>
+              <input type="text" id="rea-target-path" placeholder="e.g. C:\Users\Jingl\Desktop\OzzieAI Code\OzzieAI.Jarvis\bin\Debug\net10.0\OzzieAI.Jarvis.dll" value="bin\Debug\net10.0\OzzieAI.Jarvis.dll">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;">
+              <button class="hud-btn hud-btn-primary" id="btn-rea-analyze">🔍 RUN REA ANALYSIS</button>
+            </div>
+          </div>
+
+          <pre id="rea-analysis-output" style="background:#010a14;padding:14px;border:1px solid var(--border-hud);border-radius:4px;font-family:var(--font-mono);font-size:0.82rem;color:#79d6ff;min-height:300px;max-height:450px;overflow-y:auto;white-space:pre-wrap;">Ready for reverse engineering analysis...</pre>
+        </div>
+
+        <!-- 9. DISPLAY & THEMES TAB -->
+        <div class="settings-tab-pane" id="pane-display">
+          <div>
+            <h3 style="color:#fff;font-family:var(--font-hud);">DISPLAY & 3D HUD VISUAL THEMES</h3>
+            <p style="font-size:0.8rem;color:#7eb2cc;">Customize holographic WebGL shader color themes, particle density, and acoustic UI feedback volume.</p>
+          </div>
+
+          <div class="form-row" style="background:rgba(0,212,255,0.06);padding:16px;border:1px solid var(--border-hud);border-radius:6px;">
+            <div class="form-group">
+              <label>Hologram Visual Theme Preset</label>
+              <select id="cfg-theme">
+                <option value="JarvisCyan">Jarvis Cyan (Avengers / Lab Hologram)</option>
+                <option value="ArcOrange">Arc Reactor Orange (Mark Armor Core)</option>
+                <option value="MarkGold">Stark Gold & Titanium</option>
+                <option value="UltronCrimson">Ultron Crimson Alert</option>
+                <option value="StealthGreen">Stealth Emerald Recon</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>3D Hologram Particle Density</label>
+              <input type="number" id="cfg-particle-density" min="500" max="4000" step="100" value="1200">
+            </div>
+            <div class="form-group">
+              <label>Stark UI Sound Effects Volume</label>
+              <input type="range" id="cfg-sfx-volume" min="0" max="1" step="0.1" value="0.6">
+            </div>
+          </div>
+
+          <!-- Color Swatch Badges for Quick Interactive Preview -->
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+            <div class="theme-swatch" data-theme="JarvisCyan" style="padding:6px 14px;border:1px solid #00d4ff;border-radius:4px;background:rgba(0,212,255,0.12);color:#00d4ff;font-size:0.75rem;font-family:var(--font-hud);">CYAN #00D4FF</div>
+            <div class="theme-swatch" data-theme="ArcOrange" style="padding:6px 14px;border:1px solid #ff9d00;border-radius:4px;background:rgba(255,157,0,0.12);color:#ff9d00;font-size:0.75rem;font-family:var(--font-hud);">ARC ORANGE #FF9D00</div>
+            <div class="theme-swatch" data-theme="MarkGold" style="padding:6px 14px;border:1px solid #ffd700;border-radius:4px;background:rgba(255,215,0,0.12);color:#ffd700;font-size:0.75rem;font-family:var(--font-hud);">MARK GOLD #FFD700</div>
+            <div class="theme-swatch" data-theme="UltronCrimson" style="padding:6px 14px;border:1px solid #ff2233;border-radius:4px;background:rgba(255,34,51,0.12);color:#ff2233;font-size:0.75rem;font-family:var(--font-hud);">ULTRON CRIMSON #FF2233</div>
+            <div class="theme-swatch" data-theme="StealthGreen" style="padding:6px 14px;border:1px solid #39ff14;border-radius:4px;background:rgba(57,255,20,0.12);color:#39ff14;font-size:0.75rem;font-family:var(--font-hud);">STEALTH GREEN #39FF14</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="settings-footer">
+        <button id="btn-cancel-settings" class="hud-btn">CANCEL</button>
+        <button id="btn-save-settings" class="hud-btn hud-btn-primary">💾 SAVE & HOT-RELOAD</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPOINTMENT REMINDER NOTIFICATION BANNER / MODAL -->
+  <div id="appointment-reminder-modal" class="hud-reminder-overlay hidden">
+    <div class="hud-reminder-card glow-pulse">
+      <div class="reminder-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="warning-pulse-icon">⏰</span>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:0.75rem;color:var(--accent-color);letter-spacing:1px;">STARK TACTICAL AGENDA ALERT</div>
+            <div style="font-size:1.1rem;font-weight:700;color:#fff;" id="appt-reminder-title">Meeting with Renee</div>
+          </div>
+        </div>
+        <span id="appt-reminder-badge" class="reminder-lead-badge">UPCOMING</span>
+      </div>
+
+      <div class="reminder-body">
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:0.85rem;color:#bfe9ff;">
+          <strong>Attendees:</strong> <span id="appt-reminder-attendees">Renee</span>
+          <strong>Scheduled:</strong> <span id="appt-reminder-time">Tomorrow at 10:00 AM</span>
+          <strong>Directive:</strong> <span id="appt-reminder-desc">Discussion on Global Domination</span>
+        </div>
+      </div>
+
+      <div class="reminder-footer">
+        <button id="btn-appt-dismiss" class="hud-btn hud-btn-primary" style="background:#00d4ff;color:#000;font-weight:700;">✓ DISMISS REMINDER</button>
+        <button id="btn-appt-snooze" class="hud-btn">💤 SNOOZE 5 MIN</button>
+        <button id="btn-appt-cancel" class="hud-btn" style="border-color:var(--danger-color);color:var(--danger-color);">✕ CANCEL APPOINTMENT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== STARK SECURE CONTACTS HOLOGRAPHIC DRAWER ======================== -->
+  <aside id="contacts-drawer" class="contacts-drawer hidden interactive">
+    <div class="contacts-drawer-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="arc-mini-reactor" style="width:28px;height:28px;">
+          <div class="arc-mini-core"></div>
+        </div>
+        <div>
+          <div class="contacts-drawer-title">STARK SECURE CONTACTS</div>
+          <div class="contacts-drawer-sub">CLEARANCE DIRECTORY • MCP & COMMS INTEGRATED</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-add-contact-drawer" class="hud-btn hud-btn-primary" style="padding:4px 10px;font-size:0.75rem;font-weight:700;">+ NEW</button>
+        <button id="btn-close-contacts-drawer" class="hud-btn" style="padding:4px 8px;">✕</button>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="contacts-drawer-toolbar">
+      <div style="position:relative;">
+        <input type="text" id="contacts-search-input" class="contacts-search-field" placeholder="🔍 Search contacts by name, alias, email, phone, role, tags...">
+      </div>
+      <div class="contacts-tag-filters" id="contacts-drawer-tag-filters">
+        <button class="contact-filter-btn active" data-filter="ALL">ALL</button>
+        <button class="contact-filter-btn" data-filter="VIP">VIP</button>
+        <button class="contact-filter-btn" data-filter="AVENGERS">AVENGERS</button>
+        <button class="contact-filter-btn" data-filter="STARK IND">STARK IND</button>
+        <button class="contact-filter-btn" data-filter="EXECUTIVE">EXECUTIVE</button>
+        <button class="contact-filter-btn" data-filter="EMERGENCY">EMERGENCY</button>
+      </div>
+      <div class="contacts-stats-bar">
+        <span id="contacts-count-label">6 CONTACTS ENCRYPTED</span>
+        <span style="color:var(--accent-color);">CLEARANCE LEVEL 10 ACTIVE</span>
+      </div>
+    </div>
+
+    <!-- Cards Stream Container -->
+    <div class="contacts-cards-list" id="contacts-cards-list">
+      <!-- Contact Cards dynamically populated -->
+    </div>
+  </aside>
+
+  <!-- ======================== IN-HUD INTERACTIVE TERMINAL EMULATOR ======================== -->
+  <aside id="in-hud-terminal-drawer" class="in-hud-terminal-drawer hidden interactive">
+    <div class="terminal-drawer-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.1rem;color:#00d4ff;">💻</span>
+        <div>
+          <span style="font-family:var(--font-hud);font-size:0.85rem;color:#00d4ff;letter-spacing:1px;">STARK IN-HUD TERMINAL</span>
+          <span style="font-size:0.68rem;color:#7eb2cc;font-family:var(--font-mono);margin-left:8px;">// POWERSHELL CORE EXECUTION</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button id="btn-clear-terminal" class="hud-btn" style="padding:2px 8px;font-size:0.72rem;" title="Clear Output">CLEAR</button>
+        <button id="btn-close-terminal-drawer" class="hud-btn" style="padding:2px 8px;font-size:0.72rem;" title="Close Terminal Drawer">✕</button>
+      </div>
+    </div>
+    <div class="terminal-output-window" id="terminal-output-window">
+[STARK TACTICAL TERMINAL READY - POWERSHELL SUBSYSTEM ENGAGED]
+Type any PowerShell, git, dotnet, or system command and press Enter.
+    </div>
+    <div class="terminal-input-row">
+      <span>PS STARK&gt;</span>
+      <input type="text" id="terminal-input-field" class="terminal-input-field" placeholder="Get-Process, git status, dotnet test, docker ps..." autocomplete="off" spellcheck="false">
+      <button id="btn-exec-terminal" class="hud-btn hud-btn-primary" style="padding:2px 10px;font-size:0.75rem;font-weight:700;">RUN</button>
+    </div>
+  </aside>
+
+  <!-- ======================== CONTACT EDIT / CREATE MODAL ======================== -->
+  <div id="contact-edit-modal" class="hud-modal-overlay hidden interactive">
+    <div class="hud-modal-card">
+      <div class="hud-modal-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.3rem;">👤</span>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:1rem;color:#fff;" id="contact-modal-title">REGISTER SECURE CONTACT</div>
+            <div style="font-size:0.7rem;color:#7eb2cc;">STARK GLOBAL PROTOCOL DIRECTORY</div>
+          </div>
+        </div>
+        <button id="btn-close-contact-modal" class="hud-btn" style="padding:4px 8px;">✕</button>
+      </div>
+
+      <div class="hud-modal-body" style="max-height:70vh;overflow-y:auto;padding-right:6px;">
+        <input type="hidden" id="edit-contact-id">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="edit-contact-name" placeholder="e.g. Renee" required>
+          </div>
+          <div class="form-group">
+            <label>Call Sign / Alias</label>
+            <input type="text" id="edit-contact-callsign" placeholder="e.g. Valkyrie">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Role / Title</label>
+            <input type="text" id="edit-contact-role" placeholder="e.g. Strategic Operations Lead">
+          </div>
+          <div class="form-group">
+            <label>Organization / Dept</label>
+            <input type="text" id="edit-contact-org" placeholder="e.g. Stark Industries">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Primary Phone Number</label>
+            <input type="tel" id="edit-contact-phone-primary" placeholder="+1-555-0100">
+          </div>
+          <div class="form-group">
+            <label>Secondary / Satellite Phone</label>
+            <input type="tel" id="edit-contact-phone-secondary" placeholder="+1-555-0101">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Primary Email</label>
+            <input type="email" id="edit-contact-email-primary" placeholder="renee@starkindustries.com">
+          </div>
+          <div class="form-group">
+            <label>Work / Secure Email</label>
+            <input type="email" id="edit-contact-email-work" placeholder="renee.secure@avengers.gov">
+          </div>
+        </div>
+
+        <!-- Facial Recognition Photo Field with Live Preview -->
+        <div class="form-row" style="background:rgba(0,212,255,0.06);padding:10px;border:1px solid var(--border-hud);border-radius:4px;">
+          <div class="form-group" style="flex:1;">
+            <label>Facial Recognition Photo (URL / Face ID)</label>
+            <input type="text" id="edit-contact-avatar" placeholder="https://images.unsplash.com/... or Stark Face Scan URL">
+          </div>
+          <div class="form-group" style="width:70px;align-items:center;">
+            <label>Face ID</label>
+            <div class="contact-avatar-wrapper" style="width:46px;height:46px;">
+              <img id="edit-contact-avatar-preview" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" class="contact-avatar-img" onerror="this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';">
+              <div class="contact-face-reticle"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Clearance Level (1 - 10)</label>
+            <select id="edit-contact-clearance">
+              <option value="10">Level 10 (Supreme / Stark / Avengers Core)</option>
+              <option value="9">Level 9 (High Command / S.H.I.E.L.D.)</option>
+              <option value="8">Level 8 (Executive / Senior Ops)</option>
+              <option value="7">Level 7 (Field Specialist)</option>
+              <option value="5" selected>Level 5 (Standard Clearance)</option>
+              <option value="3">Level 3 (Restricted)</option>
+              <option value="1">Level 1 (Public / Guest)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Avatar Hologram Color</label>
+            <input type="color" id="edit-contact-color" value="#00d4ff" style="height:38px;padding:2px 4px;cursor:pointer;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tags (Comma-separated: VIP, AVENGERS, STARK IND, EXECUTIVE, EMERGENCY)</label>
+          <input type="text" id="edit-contact-tags" placeholder="VIP, Strategic, Stark Industries">
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+            <span class="preset-tag-chip" data-tag="VIP">+ VIP</span>
+            <span class="preset-tag-chip" data-tag="AVENGERS">+ AVENGERS</span>
+            <span class="preset-tag-chip" data-tag="STARK IND">+ STARK IND</span>
+            <span class="preset-tag-chip" data-tag="EXECUTIVE">+ EXECUTIVE</span>
+            <span class="preset-tag-chip" data-tag="EMERGENCY">+ EMERGENCY</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Intelligence Dossier & Operational Notes</label>
+          <textarea id="edit-contact-notes" rows="2" placeholder="Key contact for special directives, defense logistics, and operations."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>MCP & Integration Metadata (JSON)</label>
+          <textarea id="edit-contact-meta" rows="2" placeholder='{"crm_id": "STARK-9901", "preferred_comms": "encrypted_satellite"}'></textarea>
+        </div>
+      </div>
+
+      <div class="hud-modal-footer">
+        <button id="btn-cancel-contact-modal" class="hud-btn">CANCEL</button>
+        <button id="btn-save-contact-modal" class="hud-btn hud-btn-primary" style="font-weight:700;">💾 SAVE CONTACT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== CONTACT DOSSIER POPUP MODAL (HOME SCREEN BIOMETRIC) ======================== -->
+  <div id="contact-dossier-modal" class="hud-modal-overlay hidden interactive">
+    <div class="dossier-card">
+      <div class="dossier-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="arc-mini-reactor" style="width:24px;height:24px;">
+            <div class="arc-mini-core"></div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:0.95rem;color:#fff;">STARK BIOMETRIC DOSSIER</div>
+            <div style="font-size:0.68rem;color:#7eb2cc;">FACIAL RECOGNITION POSITIVE MATCH • CLEARANCE ENCRYPTED</div>
+          </div>
+        </div>
+        <button id="btn-close-dossier-modal" class="hud-btn" style="padding:4px 8px;">✕</button>
+      </div>
+
+      <div class="dossier-body">
+        <!-- Face Hero Header -->
+        <div class="dossier-face-hero">
+          <div class="dossier-face-container">
+            <img id="dossier-face-img" src="" class="dossier-face-img" alt="Facial Biometric Photo">
+            <div class="contact-face-reticle"></div>
+            <div class="dossier-face-badge" id="dossier-clearance-badge">LEVEL 10</div>
+          </div>
+          <div class="dossier-details">
+            <div class="dossier-name" id="dossier-name">Anthony Stark</div>
+            <div class="dossier-callsign" id="dossier-callsign">IRON MAN</div>
+            <div class="dossier-role" id="dossier-role">CEO, Chief Engineer & Lead Avenger</div>
+            <div id="dossier-tags-row" style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;"></div>
+          </div>
+        </div>
+
+        <!-- Secure Communications Channel -->
+        <div class="contact-comms-box" style="padding:14px;background:rgba(0,20,38,0.7);">
+          <div style="font-family:var(--font-hud);color:var(--primary-color);font-size:0.75rem;letter-spacing:1px;margin-bottom:8px;">SECURE COMMS MATRIX</div>
+          <div class="comms-row" style="margin-bottom:8px;">
+            <span class="comms-label">PRIMARY COMMS:</span>
+            <span id="dossier-phone-primary" style="font-family:var(--font-mono);font-size:0.85rem;color:#fff;font-weight:600;">+1-555-0199</span>
+          </div>
+          <div class="comms-row" style="margin-bottom:8px;">
+            <span class="comms-label">SATELLITE/BACKUP:</span>
+            <span id="dossier-phone-secondary" style="font-family:var(--font-mono);font-size:0.82rem;color:#8cc3df;">+1-555-0198</span>
+          </div>
+          <div class="comms-row">
+            <span class="comms-label">STARK EMAIL:</span>
+            <span id="dossier-email-primary" style="font-family:var(--font-mono);font-size:0.82rem;color:#00ffcc;">tony@starkindustries.com</span>
+          </div>
+        </div>
+
+        <!-- Intelligence Notes -->
+        <div style="background:rgba(0,10,20,0.6);padding:12px;border:1px solid rgba(0,212,255,0.15);border-radius:6px;">
+          <div style="font-family:var(--font-hud);font-size:0.75rem;color:#7eb2cc;letter-spacing:1px;">TACTICAL INTELLIGENCE NOTES:</div>
+          <div id="dossier-notes" style="font-size:0.82rem;color:#d1e9f7;margin-top:6px;line-height:1.45;">Key personnel on active priority matrix.</div>
+        </div>
+      </div>
+
+      <div class="hud-modal-footer" style="padding:14px 20px;border-top:1px solid var(--border-hud);display:flex;justify-content:space-between;align-items:center;">
+        <button id="btn-dossier-edit" class="hud-btn">✏️ EDIT CONTACT</button>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-dossier-schedule" class="hud-btn" style="border-color:#ff9800;color:#ff9800;font-weight:700;">📅 SCHEDULE APPOINTMENT</button>
+          <button id="btn-dossier-comms" class="hud-btn hud-btn-primary" style="font-weight:700;">📞 TRANSMIT COMMS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== STARK ADVANCED PROJECTS COMMAND STUDIO (FULL SCREEN) ======================== -->
+  <div id="projects-fullscreen-modal" class="projects-fullscreen-overlay hidden interactive">
+    <div class="projects-fullscreen-container">
+      
+      <!-- Studio Header Bar -->
+      <header class="projects-studio-header">
+        <div class="studio-header-left">
+          <div class="arc-mini-reactor" style="width:34px;height:34px;border-color:#ff9800;">
+            <div class="arc-mini-core" style="background:#ff9800;box-shadow:0 0 12px #ff9800;"></div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:1.15rem;letter-spacing:1.5px;color:#fff;">
+              STARK ADVANCED PROJECTS <span style="color:#ff9800;">COMMAND STUDIO</span>
+            </div>
+            <div style="font-size:0.68rem;color:#ffb74d;letter-spacing:1px;font-family:var(--font-mono);">
+              NEURAL WORKBENCH • AUTONOMOUS AGENT AUTOMATION • GHOST DRIVE ARCHIVES • 3D MATRIX
+            </div>
+          </div>
+        </div>
+
+        <div class="studio-header-stats">
+          <div class="studio-stat-chip">
+            <span class="status-dot pulse" style="background:#ff9800;"></span>
+            <span id="proj-stat-total" style="color:#ffb74d;font-weight:700;">0 ACTIVE</span>
+          </div>
+          <div class="studio-stat-chip">
+            <span class="status-dot" style="background:#00e5ff;"></span>
+            <span id="proj-stat-tasks" style="color:#79d6ff;font-weight:700;">0/0 TASKS AUTOMATED</span>
+          </div>
+          <div class="studio-stat-chip" style="border-color:rgba(57,255,20,0.3);color:#39ff14;">
+            <span>🤖 AI AGENT EXECUTION READY</span>
+          </div>
+        </div>
+
+        <div class="studio-header-actions">
+          <button id="btn-studio-run-research" class="hud-btn" style="border-color:#ff9800;color:#ff9800;padding:6px 12px;font-size:0.75rem;">
+            🔬 DEPLOY RESEARCH
+          </button>
+          <button id="btn-studio-new-project" class="hud-btn hud-btn-primary" style="background:rgba(255,152,0,0.2);border-color:#ff9800;color:#ffb74d;padding:6px 14px;font-size:0.75rem;">
+            + NEW INITIATIVE
+          </button>
+          <button id="btn-close-projects-studio" class="hud-btn" style="padding:6px 12px;font-size:0.9rem;" title="Close Full Screen Studio (Esc)">
+            ✕ CLOSE
+          </button>
+        </div>
+      </header>
+
+      <!-- Studio Body: Split Screen -->
+      <div class="projects-studio-body">
+        
+        <!-- Left Column: Navigator Deck -->
+        <aside class="projects-deck-sidebar">
+          <div class="deck-search-box">
+            <input type="text" id="studio-proj-search" class="hud-input" placeholder="🔍 Search projects, blueprints, tags..." style="padding:7px 10px;font-size:0.8rem;width:100%;">
+          </div>
+
+          <div class="deck-category-filters">
+            <button class="studio-filter-pill active" data-cat="ALL">ALL</button>
+            <button class="studio-filter-pill" data-cat="ENGINEERING">ENGINEERING</button>
+            <button class="studio-filter-pill" data-cat="DEFENSE">DEFENSE</button>
+            <button class="studio-filter-pill" data-cat="AI & MCP">AI & MCP</button>
+            <button class="studio-filter-pill" data-cat="BIOTECH">BIOTECH</button>
+            <button class="studio-filter-pill" data-cat="QUANTUM">QUANTUM</button>
+          </div>
+
+          <!-- Project Cards List -->
+          <div class="studio-projects-list" id="studio-projects-list">
+            <!-- Dynamically populated with .studio-project-card -->
+          </div>
+        </aside>
+
+        <!-- Right Column: Interactive Workbench -->
+        <main class="projects-workbench">
+          
+          <!-- Empty State -->
+          <div id="workbench-empty-state" class="workbench-empty-state">
+            <div style="font-size:3rem;margin-bottom:12px;filter:drop-shadow(0 0 10px #ff9800);">📂</div>
+            <div style="font-family:var(--font-hud);font-size:1.1rem;color:#fff;letter-spacing:1px;">NO PROJECT SELECTED</div>
+            <p style="font-size:0.82rem;color:#7eb2cc;max-width:440px;margin-top:6px;line-height:1.5;">
+              Select an initiative from the Navigator Deck on the left, or initialize a new Stark blueprint to start engineering and automating tasks.
+            </p>
+          </div>
+
+          <!-- Active Workbench Content -->
+          <div id="workbench-active-content" class="workbench-active-content" style="display:none;">
+            
+            <!-- Hero Banner: Project Identity & Metadata -->
+            <div class="workbench-hero-banner">
+              <div class="wb-hero-top">
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <span id="wb-badge-category" class="project-code-tag" style="border-color:#ff9800;color:#ff9800;">ENGINEERING</span>
+                    <span id="wb-badge-ghostpath" class="project-code-tag" style="border-color:#00d4ff;color:#00d4ff;">📁 Projects/stark</span>
+                    <span style="font-size:0.75rem;color:#7eb2cc;">Lead: <strong id="wb-lead-agent-name" style="color:#fff;">J.A.R.V.I.S. Core</strong></span>
+                  </div>
+                  <input type="text" id="wb-proj-name" class="wb-title-input" placeholder="Project Name" value="">
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <button id="btn-wb-save-project" class="hud-btn hud-btn-primary" style="background:rgba(255,152,0,0.25);border-color:#ff9800;color:#ffb74d;padding:6px 14px;font-size:0.78rem;">
+                    💾 SAVE CHANGES
+                  </button>
+                  <button id="btn-wb-delete-project" class="hud-btn hud-btn-danger" style="padding:6px 10px;font-size:0.78rem;" title="Decommission Project">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+              <div style="margin-top:6px;">
+                <input type="text" id="wb-proj-desc" class="hud-input" placeholder="Project Directive / Strategic Objectives..." style="width:100%;font-size:0.82rem;padding:6px 10px;">
+              </div>
+
+              <!-- Meta Controls Strip -->
+              <div class="wb-meta-strip">
+                <div class="wb-meta-col">
+                  <label>STATUS</label>
+                  <select id="wb-proj-status" class="hud-input" style="padding:4px 8px;font-size:0.75rem;">
+                    <option value="Active">Active</option>
+                    <option value="Under Review">Under Review</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Suspended">Suspended</option>
+                  </select>
+                </div>
+
+                <div class="wb-meta-col">
+                  <label>PRIORITY</label>
+                  <select id="wb-proj-priority" class="hud-input" style="padding:4px 8px;font-size:0.75rem;">
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                </div>
+
+                <div class="wb-meta-col" style="flex:1;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <label>COMPLETION TELEMETRY</label>
+                    <span id="wb-progress-label" style="font-family:var(--font-mono);color:#ff9800;font-weight:700;font-size:0.8rem;">65%</span>
+                  </div>
+                  <input type="range" id="wb-progress-slider" min="0" max="100" value="65" style="width:100%;cursor:pointer;accent-color:#ff9800;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Workbench Sub-Tabs Navigation Bar -->
+            <div class="wb-tabs-bar">
+              <button class="wb-tab-btn active" data-wb-tab="tasks">
+                📋 TASKS & AUTOMATION
+              </button>
+              <button class="wb-tab-btn" data-wb-tab="notes">
+                📝 NOTES & LOGBOOK
+              </button>
+              <button class="wb-tab-btn" data-wb-tab="research">
+                🔬 RESEARCH DOSSIER
+              </button>
+              <button class="wb-tab-btn" data-wb-tab="ghost-files">
+                💾 GHOST DRIVE FILES
+              </button>
+              <button class="wb-tab-btn" data-wb-tab="blueprint3d">
+                📐 3D BLUEPRINT MATRIX
+              </button>
+            </div>
+
+            <!-- Workbench Sub-Tab Content Panes -->
+            <div class="wb-tab-panes-wrapper">
+
+              <!-- PANE 1: TASKS & AUTOMATION -->
+              <div id="wb-pane-tasks" class="wb-tab-pane active">
+                <!-- Inline Add Task Bar -->
+                <div class="wb-add-task-bar">
+                  <input type="text" id="wb-new-task-title" class="hud-input" placeholder="Enter new task or engineering deliverable..." style="flex:1;padding:6px 10px;font-size:0.8rem;">
+                  <select id="wb-new-task-priority" class="hud-input" style="width:100px;padding:6px;font-size:0.75rem;">
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="Low">Low</option>
+                  </select>
+                  <select id="wb-new-task-agent" class="hud-input" style="width:160px;padding:6px;font-size:0.75rem;">
+                    <option value="agent-jarvis-core">J.A.R.V.I.S. Core</option>
+                    <option value="agent-research">Research Agent</option>
+                    <option value="agent-defense">Defense Automation</option>
+                    <option value="agent-engineering">CAD Specialist</option>
+                  </select>
+                  <button id="btn-wb-add-task" class="hud-btn hud-btn-primary" style="background:rgba(255,152,0,0.2);border-color:#ff9800;color:#ffb74d;padding:6px 14px;font-size:0.75rem;font-weight:700;">
+                    + ADD TASK
+                  </button>
+                </div>
+
+                <!-- Tasks List -->
+                <div id="wb-tasks-list" class="wb-tasks-list">
+                  <!-- Dynamically rendered task item cards -->
+                </div>
+              </div>
+
+              <!-- PANE 2: NOTES & LOGBOOK -->
+              <div id="wb-pane-notes" class="wb-tab-pane">
+                <div class="wb-notes-toolbar">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <button id="btn-notes-insert-timestamp" class="hud-btn" style="padding:4px 10px;font-size:0.72rem;">
+                      ⏱️ INSERT TIMESTAMP
+                    </button>
+                    <button id="btn-notes-insert-template" class="hud-btn" style="padding:4px 10px;font-size:0.72rem;">
+                      🛠️ INSERT TECH SPECS
+                    </button>
+                    <span id="notes-save-badge" style="display:none;font-size:0.72rem;color:#39ff14;font-family:var(--font-mono);font-weight:700;">
+                      ✓ SAVED TO GHOST DRIVE
+                    </span>
+                  </div>
+                  <button id="btn-wb-save-notes" class="hud-btn hud-btn-primary" style="background:rgba(255,152,0,0.25);border-color:#ff9800;color:#ffb74d;padding:5px 14px;font-size:0.75rem;font-weight:700;">
+                    💾 SAVE NOTES
+                  </button>
+                </div>
+
+                <div class="wb-notes-split-area">
+                  <div class="wb-notes-editor-col">
+                    <textarea id="wb-notes-editor" class="wb-notes-editor" placeholder="Record engineering specifications, test telemetry, notes, formulas, and architecture guidelines..."></textarea>
+                  </div>
+                  <div class="wb-quick-log-col">
+                    <div class="quick-log-header">
+                      <span>⚡ RAPID LOGSTREAM</span>
+                      <span style="font-size:0.68rem;color:#6fa0bc;">REALTIME TIMESTAMPED</span>
+                    </div>
+                    <div id="quick-log-stream" class="quick-log-stream">
+                      <!-- Dynamically rendered log pills -->
+                    </div>
+                    <div class="quick-log-input-box">
+                      <input type="text" id="input-quick-log" class="hud-input" placeholder="Type quick observation + Enter..." style="width:100%;padding:6px 10px;font-size:0.78rem;">
+                      <button id="btn-post-quick-log" class="hud-btn" style="padding:6px 10px;font-size:0.75rem;border-color:#ff9800;color:#ff9800;">
+                        POST
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PANE 3: RESEARCH DOSSIER -->
+              <div id="wb-pane-research" class="wb-tab-pane">
+                <div class="wb-research-deploy-box">
+                  <div style="font-family:var(--font-hud);font-size:0.85rem;color:#ff9800;margin-bottom:6px;">
+                    🔬 DEPLOY AUTONOMOUS SCIENTIFIC INVESTIGATION
+                  </div>
+                  <div style="display:flex;gap:10px;margin-bottom:8px;">
+                    <input type="text" id="wb-inline-research-topic" class="hud-input" placeholder="Research directive or theoretical dilemma..." style="flex:1;padding:6px 10px;font-size:0.8rem;">
+                    <input type="text" id="wb-inline-research-difficulty" class="hud-input" placeholder="Specific technical hurdles..." style="flex:1;padding:6px 10px;font-size:0.8rem;">
+                    <button id="btn-wb-deploy-research" class="hud-btn hud-btn-primary" style="background:rgba(255,152,0,0.25);border-color:#ff9800;color:#ffb74d;padding:6px 16px;font-weight:700;font-size:0.75rem;">
+                      🚀 ENGAGE RESEARCH AGENT
+                    </button>
+                  </div>
+                  <div id="wb-inline-research-output" class="research-agent-output-box" style="display:none;"></div>
+                </div>
+
+                <div style="margin-top:12px;">
+                  <div style="font-family:var(--font-hud);font-size:0.8rem;color:#7eb2cc;margin-bottom:4px;">
+                    ACTIVE PROJECT INTELLIGENCE DOSSIER:
+                  </div>
+                  <pre id="wb-research-preview" class="research-dossier-preview"></pre>
+                </div>
+              </div>
+
+              <!-- PANE 4: GHOST DRIVE FILES -->
+              <div id="wb-pane-ghost-files" class="wb-tab-pane">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.08);">
+                  <div>
+                    <span style="font-family:var(--font-hud);font-size:0.85rem;color:#00d4ff;">💾 GHOST DRIVE STORAGE REPOSITORY</span>
+                    <span id="wb-ghost-dir-label" style="margin-left:12px;font-family:var(--font-mono);font-size:0.75rem;color:#ffb74d;">Partition: Projects/stark</span>
+                  </div>
+                  <span style="font-size:0.72rem;color:#39ff14;font-family:var(--font-mono);">ENCRYPTION: AES-256 GCM</span>
+                </div>
+                <div id="wb-ghost-files-list" class="wb-ghost-files-list">
+                  <!-- Dynamically rendered file rows -->
+                </div>
+              </div>
+
+              <!-- PANE 5: 3D BLUEPRINT MATRIX -->
+              <div id="wb-pane-blueprint3d" class="wb-tab-pane">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);">
+                  <div>
+                    <div id="wb-3d-blueprint-title" style="font-family:var(--font-hud);font-size:0.95rem;color:#fff;">
+                      3D Holographic Matrix Schematic
+                    </div>
+                    <div style="font-size:0.72rem;color:#6fa0bc;">
+                      Synchronizes real-time coordinate meshes with the central WebGL 3D holographic projection engine.
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <span id="wb-3d-sync-badge" style="display:none;font-size:0.75rem;color:#39ff14;font-family:var(--font-mono);font-weight:700;">
+                      ✓ 3D MATRIX PROJECTED TO HUD
+                    </span>
+                    <button id="btn-wb-sync-3d" class="hud-btn hud-btn-primary" style="background:rgba(0,212,255,0.2);border-color:#00d4ff;color:#79d6ff;padding:6px 14px;font-weight:700;font-size:0.75rem;">
+                      🌐 PROJECT TO CENTRAL HUD
+                    </button>
+                  </div>
+                </div>
+
+                <pre id="wb-3d-schematic-code" class="schematic-code-preview"></pre>
+              </div>
+
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== CREATE NEW PROJECT INITIATIVE MODAL ======================== -->
+  <div id="create-project-modal" class="hud-modal-overlay hidden interactive">
+    <div class="hud-modal-card" style="max-width:540px;">
+      <div class="hud-modal-header" style="border-color:rgba(255,152,0,0.4);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.3rem;">🚀</span>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:1rem;color:#ff9800;">INITIALIZE NEW PROJECT BLUEPRINT</div>
+            <div style="font-size:0.7rem;color:#7eb2cc;">STARK ADVANCED RESEARCH & DEFENSE SPECIFICATION</div>
+          </div>
+        </div>
+        <button id="btn-close-create-proj-modal" class="hud-btn" style="padding:4px 8px;">✕</button>
+      </div>
+
+      <div class="hud-modal-body" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:0.75rem;color:#ffb74d;font-family:var(--font-hud);display:block;margin-bottom:4px;">PROJECT NAME *</label>
+          <input type="text" id="new-proj-name" class="hud-input" placeholder="e.g. Project Mark 85 Nanotech Chassis" style="width:100%;padding:8px 10px;font-size:0.85rem;">
+        </div>
+
+        <div>
+          <label style="font-size:0.75rem;color:#ffb74d;font-family:var(--font-hud);display:block;margin-bottom:4px;">DESCRIPTION & STRATEGIC GOALS</label>
+          <input type="text" id="new-proj-desc" class="hud-input" placeholder="e.g. Next-gen vibranium weave exoskeleton with plasma deflectors" style="width:100%;padding:8px 10px;font-size:0.85rem;">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:0.75rem;color:#ffb74d;font-family:var(--font-hud);display:block;margin-bottom:4px;">PRIMARY CATEGORY</label>
+            <select id="new-proj-category" class="hud-input" style="width:100%;padding:8px 10px;font-size:0.82rem;">
+              <option value="Engineering" selected>Engineering</option>
+              <option value="Defense">Defense</option>
+              <option value="AI & MCP">AI & MCP</option>
+              <option value="Biotech">Biotech</option>
+              <option value="Quantum">Quantum</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:0.75rem;color:#ffb74d;font-family:var(--font-hud);display:block;margin-bottom:4px;">DEFENSE PRIORITY</label>
+            <select id="new-proj-priority" class="hud-input" style="width:100%;padding:8px 10px;font-size:0.82rem;">
+              <option value="Critical">Critical</option>
+              <option value="High" selected>High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size:0.75rem;color:#ffb74d;font-family:var(--font-hud);display:block;margin-bottom:4px;">TAGS & METADATA (COMMA-SEPARATED)</label>
+          <input type="text" id="new-proj-tags" class="hud-input" placeholder="Stark Labs, Nanotech, Defense" style="width:100%;padding:8px 10px;font-size:0.85rem;">
+        </div>
+      </div>
+
+      <div class="hud-modal-footer" style="padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:flex-end;gap:10px;">
+        <button id="btn-cancel-create-proj" class="hud-btn">CANCEL</button>
+        <button id="btn-submit-create-proj" class="hud-btn hud-btn-primary" style="background:rgba(255,152,0,0.25);border-color:#ff9800;color:#ffb74d;font-weight:700;">
+          🚀 INITIALIZE PROJECT
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== RUN RESEARCH AGENT MODAL ======================== -->
+  <div id="project-research-modal" class="hud-modal-overlay hidden interactive">
+    <div class="hud-modal-card" style="max-width:620px;">
+      <div class="hud-modal-header" style="border-color:rgba(255,152,0,0.4);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.3rem;">🔬</span>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:1rem;color:#ff9800;">DEPLOY AUTONOMOUS RESEARCH AGENT</div>
+            <div style="font-size:0.7rem;color:#7eb2cc;">DEEP SCIENTIFIC & TACTICAL INVESTIGATION ENGINE</div>
+          </div>
+        </div>
+        <button id="btn-close-research-modal" class="hud-btn" style="padding:4px 8px;">✕</button>
+      </div>
+
+      <div class="hud-modal-body">
+        <div class="form-group">
+          <label>Target Project</label>
+          <select id="research-target-project"></select>
+        </div>
+        <div class="form-group">
+          <label>Research Topic / Problem Statement *</label>
+          <input type="text" id="research-topic-input" placeholder="e.g. Sub-atomic nanotech flux stabilization or Quantum tunneling calibration">
+        </div>
+        <div class="form-group">
+          <label>Specific Difficulties / Obstacles Encountered</label>
+          <textarea id="research-difficulty-input" rows="3" placeholder="Describe the engineering challenge, calculation bottlenecks, or materials issues to resolve..."></textarea>
+        </div>
+
+        <!-- Research Status / Live Synthesis Area -->
+        <div id="research-progress-box" style="display:none;background:rgba(255,152,0,0.08);border:1px solid #ff9800;border-radius:6px;padding:14px;margin-top:10px;">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--font-hud);color:#ff9800;font-size:0.85rem;">
+            <div class="status-dot" style="background:#ff9800;box-shadow:0 0 8px #ff9800;"></div>
+            <span>RESEARCH AGENT SYNTHESIZING INTELLIGENCE...</span>
+          </div>
+          <pre id="research-output-preview" style="background:#010a14;padding:10px;border-radius:4px;margin-top:10px;font-family:var(--font-mono);font-size:0.75rem;color:#ffb74d;max-height:180px;overflow-y:auto;white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+
+      <div class="hud-modal-footer">
+        <button id="btn-cancel-research-modal" class="hud-btn">CANCEL</button>
+        <button id="btn-execute-research-agent" class="hud-btn" style="background:rgba(255,152,0,0.2);border-color:#ff9800;color:#ffb74d;font-weight:700;">🚀 ENGAGE RESEARCH AGENT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== STARK RADIO HTML5 AUDIO ELEMENT ======================== -->
+  <audio id="stark-radio-player" preload="auto"></audio>
+
+  <!-- ======================== FLOATING STARK RADIO MINI-PLAYER ======================== -->
+  <div id="stark-radio-mini" class="stark-radio-mini-player interactive">
+    <div class="radio-mini-header">
+      <div class="radio-station-title">
+        <span>📻 RADIO STARK</span>
+        <span id="radio-station-badge" class="radio-station-badge">IDLE</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button id="btn-radio-deck-open" class="hud-btn" style="padding:2px 7px;font-size:0.65rem;border-color:#ffaa00;color:#ffaa00;" title="Open Full Holographic Radio Deck">🎛️ DECK</button>
+        <button id="btn-radio-mini-toggle" class="hud-btn" style="padding:2px 6px;font-size:0.65rem;" title="Minimize / Expand Mini-Player">—</button>
+      </div>
+    </div>
+
+    <!-- Live Download Progress HUD Pill (Hidden unless downloading) -->
+    <div id="radio-mini-download-hud" class="radio-download-hud-banner" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="radio-mini-dl-status">DOWNLOADING MASTER...</span>
+        <span id="radio-mini-dl-pct">0%</span>
+      </div>
+      <div class="radio-seek-bar" style="height:3px;">
+        <div id="radio-mini-dl-fill" class="radio-seek-fill" style="width:0%;"></div>
+      </div>
+    </div>
+
+    <div class="radio-mini-body">
+      <div id="radio-mini-disc" class="radio-disc-reactor" title="Radio Stark Reactor Turntable">
+        <div class="radio-disc-core"></div>
+      </div>
+      <div class="radio-track-info">
+        <div id="radio-mini-title" class="radio-track-title">Stark Station Offline</div>
+        <div id="radio-mini-artist" class="radio-track-artist">Request any YouTube track or URL</div>
+        <div id="radio-mini-album" class="radio-track-album">Organized: Music / Artist / Album</div>
+      </div>
+    </div>
+
+    <div class="radio-mini-progress">
+      <div id="radio-mini-seek-bar" class="radio-seek-bar" title="Click to seek">
+        <div id="radio-mini-seek-fill" class="radio-seek-fill"></div>
+      </div>
+      <div class="radio-time-row">
+        <span id="radio-mini-current-time">0:00</span>
+        <span id="radio-mini-duration">0:00</span>
+      </div>
+    </div>
+
+    <div class="radio-mini-controls">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button id="btn-radio-prev" class="radio-btn-ctrl" title="Previous Track">⏮</button>
+        <button id="btn-radio-play" class="radio-btn-ctrl radio-btn-play" title="Play / Pause">▶</button>
+        <button id="btn-radio-next" class="radio-btn-ctrl" title="Skip / Next Track">⏭</button>
+        <button id="btn-radio-shuffle-mini" class="radio-btn-ctrl" title="Toggle Shuffle Mode" style="font-size:0.75rem;padding:4px 6px;">🔀</button>
+        <button id="btn-radio-repeat-mini" class="radio-btn-ctrl" title="Cycle Repeat (Off / All / One)" style="font-size:0.75rem;padding:4px 6px;">🔁</button>
+      </div>
+
+      <!-- Quick Fix Corrupted Track Button -->
+      <button id="btn-radio-corrupted-quick" class="radio-btn-corrupted" title="Jarvis, this song is corrupted, please download a new one and replace this one!">
+        <span>🚨 REPAIR</span>
+      </button>
+
+      <div class="radio-mini-controls-extra" style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:0.75rem;">🔊</span>
+        <input type="range" id="radio-mini-volume" min="0" max="100" value="85" style="width:45px;accent-color:#ffaa00;cursor:pointer;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== FULL HOLOGRAPHIC STARK RADIO DECK MODAL ======================== -->
+  <div id="stark-radio-deck-modal" class="hud-modal-overlay hidden interactive">
+    <div class="hud-modal-card" style="max-width:1050px;width:96%;">
+      <!-- Deck Header -->
+      <div class="hud-modal-header" style="border-color:rgba(255,170,0,0.5);display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="radio-disc-reactor" style="width:38px;height:38px;box-shadow:0 0 10px rgba(255,170,0,0.6);">
+            <div class="radio-disc-core" style="width:10px;height:10px;"></div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:1.05rem;color:#ffaa00;letter-spacing:1px;">STARK RADIO STATION & ALBUM HARVESTER</div>
+            <div style="font-size:0.72rem;color:#7eb2cc;">THREAD-SAFE BACKGROUND YOUTUBE CONVERTER • 11 UMBRELLA GENRES • FULL ALBUMS • HIERARCHICAL ARCHIVE</div>
+          </div>
+        </div>
+        <button id="btn-close-radio-deck" class="hud-btn" style="padding:4px 10px;">✕</button>
+      </div>
+
+      <!-- Deck Tabs Navigation -->
+      <div style="display:flex;border-bottom:1px solid rgba(255,170,0,0.2);background:rgba(255,170,0,0.03);padding:0 16px;">
+        <div class="radio-deck-tab active" data-tab="tab-radio-player">📻 BROADCAST DECK</div>
+        <div class="radio-deck-tab" data-tab="tab-radio-harvest">⬇️ REQUEST & HARVEST (SONGS & ALBUMS)</div>
+        <div class="radio-deck-tab" data-tab="tab-radio-library">📚 STATION LIBRARY MATRIX</div>
+      </div>
+
+      <div class="hud-modal-body" style="padding:16px;max-height:68vh;overflow-y:auto;">
+        
+        <!-- ================= TAB 1: BROADCAST DECK ================= -->
+        <div id="tab-radio-player" class="radio-deck-tab-content">
+          <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:center;">
+            
+            <!-- Vinyl & Visualizer Column -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:14px;background:rgba(0,0,0,0.3);padding:20px;border-radius:10px;border:1px solid rgba(255,170,0,0.2);">
+              <div id="radio-deck-disc" class="radio-disc-reactor" style="width:180px;height:180px;border-width:3px;box-shadow:0 0 25px rgba(255,170,0,0.35);">
+                <div class="radio-disc-core" style="width:36px;height:36px;"></div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;">
+                <div id="radio-deck-format-badge" class="radio-station-badge" style="font-size:0.72rem;padding:3px 8px;">MP3 MASTER</div>
+                <div id="radio-deck-genre-badge" class="radio-station-badge" style="background:rgba(0,212,255,0.2);border-color:#00d4ff;color:#00d4ff;font-size:0.72rem;padding:3px 8px;">GENRE: ROCK</div>
+              </div>
+            </div>
+
+            <!-- Details & Controls Column -->
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div style="font-size:0.7rem;color:#ffaa00;font-family:var(--font-hud);letter-spacing:1px;">CURRENT BROADCAST</div>
+                  <div id="radio-deck-modes-pill" style="font-family:var(--font-mono);font-size:0.72rem;color:#8ab5cd;">SHUFFLE: OFF • REPEAT: OFF</div>
+                </div>
+                <div id="radio-deck-title" style="font-family:var(--font-hud);font-size:1.35rem;color:#fff;letter-spacing:0.5px;">No Song Playing</div>
+                <div id="radio-deck-artist" style="font-size:0.95rem;color:#ffaa00;font-weight:600;margin-top:2px;">Stark Station Radio Ready</div>
+                <div id="radio-deck-album" style="font-size:0.8rem;color:#7eb2cc;margin-top:2px;">Album: Unknown</div>
+              </div>
+
+              <!-- Storage Hierarchy Path Preview -->
+              <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:8px 12px;font-family:var(--font-mono);font-size:0.72rem;color:#89c4e2;">
+                <span style="color:#ffaa00;">ARCHIVE PATH:</span> <span id="radio-deck-filepath">Music/JarvisRadio/...</span>
+              </div>
+
+              <!-- Seek Progress Bar -->
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <div id="radio-deck-seek-bar" class="radio-seek-bar" style="height:7px;">
+                  <div id="radio-deck-seek-fill" class="radio-seek-fill"></div>
+                </div>
+                <div class="radio-time-row">
+                  <span id="radio-deck-current-time">0:00</span>
+                  <span id="radio-deck-duration">0:00</span>
+                </div>
+              </div>
+
+              <!-- Playback Controls -->
+              <div style="display:flex;align-items:center;gap:10px;margin-top:4px;flex-wrap:wrap;">
+                <button id="btn-radio-deck-prev" class="radio-btn-ctrl" style="padding:8px 14px;font-size:1.1rem;">⏮</button>
+                <button id="btn-radio-deck-play" class="radio-btn-ctrl radio-btn-play" style="padding:10px 22px;font-size:1.3rem;">▶</button>
+                <button id="btn-radio-deck-next" class="radio-btn-ctrl" style="padding:8px 14px;font-size:1.1rem;">⏭</button>
+                <button id="btn-radio-deck-shuffle" class="hud-btn" style="padding:8px 12px;font-size:0.75rem;" title="Toggle Shuffle Mode">🔀 SHUFFLE</button>
+                <button id="btn-radio-deck-repeat" class="hud-btn" style="padding:8px 12px;font-size:0.75rem;" title="Cycle Repeat Mode">🔁 REPEAT: OFF</button>
+                
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                  <span style="font-size:0.85rem;">🔊</span>
+                  <input type="range" id="radio-deck-volume" min="0" max="100" value="85" style="width:75px;accent-color:#ffaa00;cursor:pointer;">
+                </div>
+              </div>
+
+              <!-- Corrupted Track Remediation Box -->
+              <div style="background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.3);border-radius:6px;padding:12px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-family:var(--font-hud);color:#ff6666;font-size:0.82rem;display:flex;align-items:center;gap:6px;">
+                    <span>🚨</span> TRACK INTEGRITY SENTINEL
+                  </div>
+                  <div style="font-size:0.72rem;color:#a8c4d6;margin-top:2px;">
+                    Voice Directive: <em>"Jarvis, this song is corrupted, please download a new one and replace this one!"</em>
+                  </div>
+                </div>
+                <button id="btn-radio-corrupted-deck" class="hud-btn hud-btn-danger" style="background:rgba(255,68,68,0.25);border-color:#ff4444;color:#ff9999;font-weight:700;font-size:0.75rem;padding:7px 14px;">
+                  ⚡ PURGE & RE-DOWNLOAD MASTER
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= TAB 2: REQUEST & HARVEST ================= -->
+        <div id="tab-radio-harvest" class="radio-deck-tab-content" style="display:none;">
+          <div style="display:flex;flex-direction:column;gap:18px;">
+            
+            <!-- SECTION 1: SINGLE SONG / VIDEO HARVEST -->
+            <div style="background:rgba(0,0,0,0.3);padding:14px;border-radius:8px;border:1px solid rgba(255,170,0,0.2);">
+              <label style="font-family:var(--font-hud);font-size:0.78rem;color:#ffaa00;display:block;margin-bottom:6px;">
+                🎵 HARVEST INDIVIDUAL SONG OR YOUTUBE URL
+              </label>
+              <div style="display:grid;grid-template-columns:1fr 140px 140px auto;gap:8px;align-items:center;">
+                <input type="text" id="radio-harvest-query" class="hud-input" placeholder="e.g. 'AC/DC - Back in Black' or https://youtu.be/..." style="padding:10px 14px;font-size:0.9rem;border-color:rgba(255,170,0,0.4);">
+                
+                <select id="radio-harvest-genre" class="hud-input" style="padding:10px;font-size:0.82rem;">
+                  <option value="Rock" selected>Rock</option>
+                  <option value="Classical">Classical</option>
+                  <option value="Pop">Pop</option>
+                  <option value="Hip-Hop / Rap">Hip-Hop / Rap</option>
+                  <option value="Electronic / EDM">Electronic / EDM</option>
+                  <option value="R&B & Soul">R&B & Soul</option>
+                  <option value="Jazz">Jazz</option>
+                  <option value="Blues">Blues</option>
+                  <option value="Country & Folk">Country & Folk</option>
+                  <option value="Reggae & Caribbean">Reggae & Caribbean</option>
+                  <option value="Latin">Latin</option>
+                </select>
+
+                <select id="radio-harvest-format" class="hud-input" style="padding:10px;font-family:var(--font-mono);font-size:0.85rem;">
+                  <option value="mp3" selected>MP3 (Audio)</option>
+                  <option value="mp4">MP4 (Video)</option>
+                </select>
+
+                <button id="btn-radio-harvest-submit" class="hud-btn hud-btn-primary" style="background:rgba(255,170,0,0.25);border-color:#ffaa00;color:#ffb74d;font-weight:700;padding:10px 16px;white-space:nowrap;">
+                  ⚡ HARVEST TRACK
+                </button>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                <input type="checkbox" id="radio-harvest-autoplay" checked style="accent-color:#ffaa00;cursor:pointer;">
+                <label for="radio-harvest-autoplay" style="font-size:0.75rem;color:#8ab5cd;cursor:pointer;">
+                  Auto-play on Radio Station immediately once downloaded
+                </label>
+              </div>
+            </div>
+
+            <!-- SECTION 2: FULL ALBUM & DISCOGRAPHY HARVESTER -->
+            <div style="background:rgba(255,170,0,0.05);padding:14px;border-radius:8px;border:1px solid rgba(255,170,0,0.35);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <label style="font-family:var(--font-hud);font-size:0.82rem;color:#ffaa00;display:block;">
+                  💿 HARVEST FULL ALBUM / ENTIRE ARTIST DISCOGRAPHY
+                </label>
+                <span class="radio-station-badge" style="font-size:0.68rem;padding:2px 8px;">THREAD-SAFE BATCH ENGINE</span>
+              </div>
+              <div style="font-size:0.74rem;color:#a8c4d6;margin-bottom:10px;">
+                Direct voice: <em>"Jarvis, play all AC/DC songs, download all their albums"</em> — yt-dlp harvests full albums in background, organizes sequentially, and auto-queues!
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 140px 90px auto;gap:8px;align-items:center;">
+                <input type="text" id="radio-album-artist" class="hud-input" placeholder="Artist (e.g. AC/DC)" style="padding:9px 12px;font-size:0.85rem;">
+                <input type="text" id="radio-album-name" class="hud-input" placeholder="Album Name (Leave empty for Complete Discography)" style="padding:9px 12px;font-size:0.85rem;">
+                
+                <select id="radio-album-genre" class="hud-input" style="padding:9px;font-size:0.82rem;">
+                  <option value="Rock" selected>Rock</option>
+                  <option value="Classical">Classical</option>
+                  <option value="Pop">Pop</option>
+                  <option value="Hip-Hop / Rap">Hip-Hop / Rap</option>
+                  <option value="Electronic / EDM">Electronic / EDM</option>
+                  <option value="R&B & Soul">R&B & Soul</option>
+                  <option value="Jazz">Jazz</option>
+                  <option value="Blues">Blues</option>
+                  <option value="Country & Folk">Country & Folk</option>
+                  <option value="Reggae & Caribbean">Reggae & Caribbean</option>
+                  <option value="Latin">Latin</option>
+                </select>
+
+                <select id="radio-album-count" class="hud-input" style="padding:9px;font-size:0.82rem;">
+                  <option value="5">5 Tracks</option>
+                  <option value="10" selected>10 Tracks</option>
+                  <option value="15">15 Tracks</option>
+                  <option value="25">25 Tracks</option>
+                </select>
+
+                <button id="btn-radio-harvest-album-submit" class="hud-btn hud-btn-primary" style="background:rgba(255,170,0,0.3);border-color:#ffaa00;color:#ffb74d;font-weight:700;padding:9px 16px;white-space:nowrap;">
+                  💿 HARVEST ALBUM
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Download Monitor -->
+            <div id="radio-harvest-monitor" style="display:none;background:rgba(255,170,0,0.06);border:1px solid #ffaa00;border-radius:8px;padding:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-family:var(--font-hud);font-size:0.82rem;color:#ffaa00;">
+                <span id="radio-harvest-status-text">INITIALIZING YOUTUBE PROBE...</span>
+                <span id="radio-harvest-percent-text">0%</span>
+              </div>
+              <div class="radio-seek-bar" style="height:6px;margin:10px 0;">
+                <div id="radio-harvest-progress-fill" class="radio-seek-fill" style="width:0%;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#7eb2cc;font-family:var(--font-mono);">
+                <span id="radio-harvest-speed">Speed: --</span>
+                <span id="radio-harvest-eta">ETA: --</span>
+              </div>
+            </div>
+
+            <!-- Quick Stark Presets -->
+            <div>
+              <div style="font-family:var(--font-hud);font-size:0.75rem;color:#ffaa00;letter-spacing:1px;margin-bottom:8px;">
+                ⚡ QUICK TACTICAL PRESETS & STARK AUDIOPHILE ARCHIVE
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));gap:8px;">
+                <button class="hud-btn radio-preset-btn" data-query="AC/DC - Back in Black" data-genre="Rock" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🎸 AC/DC - Back in Black</button>
+                <button class="hud-btn radio-preset-btn" data-query="AC/DC - Thunderstruck" data-genre="Rock" style="text-align:left;padding:8px 12px;font-size:0.75rem;">⚡ AC/DC - Thunderstruck</button>
+                <button class="hud-btn radio-preset-btn" data-query="Black Sabbath - Iron Man" data-genre="Rock" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🪖 Black Sabbath - Iron Man</button>
+                <button class="hud-btn radio-preset-btn" data-query="Daft Punk - Tron Legacy End Titles" data-genre="Electronic / EDM" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🏍️ Daft Punk - Tron Legacy</button>
+                <button class="hud-btn radio-preset-btn" data-query="Hans Zimmer - Time (Inception)" data-genre="Classical" style="text-align:left;padding:8px 12px;font-size:0.75rem;">⏳ Hans Zimmer - Time</button>
+                <button class="hud-btn radio-preset-btn" data-query="Miles Davis - So What" data-genre="Jazz" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🎷 Miles Davis - So What</button>
+                <button class="hud-btn radio-preset-btn" data-query="B.B. King - The Thrill Is Gone" data-genre="Blues" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🎸 B.B. King - The Thrill Is Gone</button>
+                <button class="hud-btn radio-preset-btn" data-query="Johnny Cash - Hurt" data-genre="Country & Folk" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🤠 Johnny Cash - Hurt</button>
+                <button class="hud-btn radio-preset-btn" data-query="Bob Marley - Three Little Birds" data-genre="Reggae & Caribbean" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🌴 Bob Marley - Three Little Birds</button>
+                <button class="hud-btn radio-preset-btn" data-query="Santana - Smooth" data-genre="Latin" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🎺 Santana - Smooth</button>
+                <button class="hud-btn radio-preset-btn" data-query="Queen - Don't Stop Me Now" data-genre="Rock" style="text-align:left;padding:8px 12px;font-size:0.75rem;">👑 Queen - Don't Stop Me Now</button>
+                <button class="hud-btn radio-preset-btn" data-query="The Rebel Path - Cyberpunk 2077" data-genre="Electronic / EDM" style="text-align:left;padding:8px 12px;font-size:0.75rem;">🌃 Cyberpunk - The Rebel Path</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= TAB 3: STATION LIBRARY MATRIX ================= -->
+        <div id="tab-radio-library" class="radio-deck-tab-content" style="display:none;">
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            
+            <!-- 11 Umbrella Genres Filter Pills Bar -->
+            <div style="display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:4px;border-bottom:1px solid rgba(255,170,0,0.15);">
+              <span style="font-size:0.7rem;font-family:var(--font-hud);color:#ffaa00;margin-right:4px;white-space:nowrap;">GENRE CHANNEL:</span>
+              <button class="radio-genre-pill active" data-genre="All">ALL</button>
+              <button class="radio-genre-pill" data-genre="Classical">Classical</button>
+              <button class="radio-genre-pill" data-genre="Rock">Rock</button>
+              <button class="radio-genre-pill" data-genre="Pop">Pop</button>
+              <button class="radio-genre-pill" data-genre="Hip-Hop / Rap">Hip-Hop / Rap</button>
+              <button class="radio-genre-pill" data-genre="Electronic / EDM">Electronic / EDM</button>
+              <button class="radio-genre-pill" data-genre="R&B & Soul">R&B & Soul</button>
+              <button class="radio-genre-pill" data-genre="Jazz">Jazz</button>
+              <button class="radio-genre-pill" data-genre="Blues">Blues</button>
+              <button class="radio-genre-pill" data-genre="Country & Folk">Country & Folk</button>
+              <button class="radio-genre-pill" data-genre="Reggae & Caribbean">Reggae & Caribbean</button>
+              <button class="radio-genre-pill" data-genre="Latin">Latin</button>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <input type="text" id="radio-lib-search" class="hud-input" placeholder="Filter library by title, artist, album, or genre..." style="flex:1;padding:8px 12px;font-size:0.82rem;">
+              <span id="radio-lib-count-badge" class="radio-station-badge" style="font-size:0.75rem;padding:4px 10px;">0 TRACKS</span>
+              <button id="btn-radio-play-genre" class="hud-btn" style="border-color:#00d4ff;color:#00d4ff;padding:6px 12px;font-size:0.75rem;" title="Play selected genre station">📻 TUNE GENRE</button>
+              <button id="btn-radio-lib-refresh" class="hud-btn" style="padding:6px 12px;font-size:0.75rem;">🔄 REFRESH</button>
+            </div>
+
+            <div style="max-height:45vh;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:6px;background:rgba(0,0,0,0.3);">
+              <table class="radio-lib-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>ARTIST</th>
+                    <th>TITLE</th>
+                    <th>ALBUM</th>
+                    <th>GENRE</th>
+                    <th>FORMAT</th>
+                    <th>DURATION</th>
+                    <th>SIZE</th>
+                    <th>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody id="radio-lib-table-body">
+                  <tr>
+                    <td colspan="9" style="text-align:center;padding:24px;color:#7eb2cc;">Loading Stark Station Library...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hud-modal-footer" style="padding:10px 16px;border-top:1px solid rgba(255,170,0,0.2);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:0.7rem;color:#7eb2cc;font-family:var(--font-mono);">VOICE PROTOCOL: "Jarvis, play all AC/DC songs, download all their albums" | "Jarvis, pause music" | "Jarvis, play Jazz"</span>
+        <button id="btn-close-radio-deck-footer" class="hud-btn">CLOSE DECK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== EDIT TRACK METADATA MODAL ======================== -->
+  <div id="radio-edit-track-modal" class="hud-modal-overlay hidden interactive">
+    <div class="hud-modal-card" style="max-width:480px;">
+      <div class="hud-modal-header" style="border-color:rgba(255,170,0,0.4);">
+        <div style="font-family:var(--font-hud);color:#ffaa00;font-size:0.95rem;">EDIT TRACK METADATA</div>
+        <button id="btn-close-edit-track-modal" class="hud-btn" style="padding:3px 8px;">✕</button>
+      </div>
+      <div class="hud-modal-body" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <input type="hidden" id="edit-track-id">
+        <div>
+          <label style="font-size:0.75rem;color:#ffaa00;display:block;margin-bottom:4px;">TITLE</label>
+          <input type="text" id="edit-track-title" class="hud-input" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem;color:#ffaa00;display:block;margin-bottom:4px;">ARTIST</label>
+          <input type="text" id="edit-track-artist" class="hud-input" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem;color:#ffaa00;display:block;margin-bottom:4px;">ALBUM</label>
+          <input type="text" id="edit-track-album" class="hud-input" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:0.75rem;color:#ffaa00;display:block;margin-bottom:4px;">GENRE</label>
+          <select id="edit-track-genre" class="hud-input" style="width:100%;">
+            <option value="Classical">Classical</option>
+            <option value="Rock">Rock</option>
+            <option value="Pop">Pop</option>
+            <option value="Hip-Hop / Rap">Hip-Hop / Rap</option>
+            <option value="Electronic / EDM">Electronic / EDM</option>
+            <option value="R&B & Soul">R&B & Soul</option>
+            <option value="Jazz">Jazz</option>
+            <option value="Blues">Blues</option>
+            <option value="Country & Folk">Country & Folk</option>
+            <option value="Reggae & Caribbean">Reggae & Caribbean</option>
+            <option value="Latin">Latin</option>
+          </select>
+        </div>
+      </div>
+      <div class="hud-modal-footer" style="padding:10px 16px;display:flex;justify-content:flex-end;gap:10px;">
+        <button id="btn-cancel-edit-track" class="hud-btn">CANCEL</button>
+        <button id="btn-save-edit-track" class="hud-btn hud-btn-primary" style="background:rgba(255,170,0,0.25);border-color:#ffaa00;color:#ffb74d;">SAVE METADATA</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== FULL HOLOGRAPHIC STARK CINEMA / VIDEO PLAYER MODAL ======================== -->
+  <div id="stark-cinema-modal" class="hud-modal-overlay hidden interactive">
+    <div class="hud-modal-card cinema-deck-card" style="max-width:1240px;width:96%;border-color:rgba(255,0,85,0.45);box-shadow:0 0 40px rgba(255,0,85,0.25);">
+      
+      <!-- Cinema Header -->
+      <div class="hud-modal-header" style="border-color:rgba(255,0,85,0.4);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg, rgba(255,0,85,0.14) 0%, rgba(0,212,255,0.06) 100%);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="cinema-reel-icon" style="font-size:1.8rem;filter:drop-shadow(0 0 10px rgba(255,0,85,0.8));">🎬</div>
+          <div>
+            <div style="font-family:var(--font-hud);font-size:1.15rem;color:#ff3377;letter-spacing:1px;display:flex;align-items:center;gap:8px;">
+              <span>STARK CINEMA // VIDEO INTELLIGENCE & YOUTUBE PLAYER</span>
+              <span id="cinema-live-badge" class="radio-station-badge" style="background:rgba(255,0,85,0.2);border-color:#ff0055;color:#ff3377;font-size:0.65rem;padding:2px 6px;">LIVE FEED</span>
+            </div>
+            <div style="font-size:0.72rem;color:#7eb2cc;">INTELLIGENT SUBSCRIBED CHANNELS • WATCHED TRACKING • PRE-BUFFER AUTO-PLAY • OFFLINE VAULT</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="cinema-global-stats" style="font-size:0.72rem;color:#00d4ff;font-family:var(--font-mono);background:rgba(0,212,255,0.08);padding:4px 8px;border-radius:4px;border:1px solid rgba(0,212,255,0.2);">CHANNELS: 0 • BROADCASTS: 0</span>
+          <button id="btn-cinema-resync" class="hud-btn" style="padding:4px 10px;font-size:0.72rem;border-color:rgba(0,212,255,0.5);color:#00d4ff;" title="Resync channels and local video vault">🔄 SYNC VAULT</button>
+          <button id="btn-close-cinema" class="hud-btn" style="padding:4px 10px;">✕</button>
+        </div>
+      </div>
+
+      <!-- Cinema Navigation Tabs: Movies, YouTube, Rumble -->
+      <div class="cinema-tab-bar">
+        <button id="cinema-tab-btn-movies" class="cinema-tab-btn active" data-tab="movies" onclick="window.jarvisApp?.switchCinemaTab('movies')">
+          <span style="font-size:1.05rem;">🎬</span>
+          <span>MOVIES VAULT</span>
+          <span id="cinema-movies-pill" class="cinema-tab-badge">0</span>
+        </button>
+        <button id="cinema-tab-btn-youtube" class="cinema-tab-btn" data-tab="youtube" onclick="window.jarvisApp?.switchCinemaTab('youtube')">
+          <span style="font-size:1.05rem;color:#ff3377;">🔴</span>
+          <span>YOUTUBE</span>
+          <span id="cinema-youtube-pill" class="cinema-tab-badge">0</span>
+        </button>
+        <button id="cinema-tab-btn-rumble" class="cinema-tab-btn" data-tab="rumble" onclick="window.jarvisApp?.switchCinemaTab('rumble')">
+          <span style="font-size:1.05rem;color:#00ff88;">🟢</span>
+          <span>RUMBLE</span>
+          <span id="cinema-rumble-pill" class="cinema-tab-badge">0</span>
+        </button>
+      </div>
+
+      <div class="hud-modal-body" style="padding:16px;max-height:70vh;overflow-y:auto;">
+
+        <!-- ================= SHARED ON-SCREEN THEATER SCREEN (THE VIDEO PLAYER) ================= -->
+        <div id="cinema-screen-container" class="cinema-screen-container hidden" style="margin-bottom:24px;">
+          <div class="cinema-theater-frame" style="background:#000;border-radius:10px;overflow:hidden;border:1px solid rgba(255,0,85,0.4);box-shadow:0 0 30px rgba(255,0,85,0.35);position:relative;">
+            
+            <!-- Video Display Area (16:9 ratio) with Pre-Buffer Loading Overlay -->
+            <div style="position:relative;width:100%;padding-top:56.25%;background:#000;">
+              
+              <!-- Holographic Quantum Pre-Buffer Loading Screen -->
+              <div id="cinema-player-loader" class="cinema-player-loader hidden">
+                <div class="cinema-loader-reticle">
+                  <div class="cinema-loader-ring outer"></div>
+                  <div class="cinema-loader-ring inner"></div>
+                  <div class="cinema-loader-core">⚡</div>
+                </div>
+                <div class="cinema-loader-content">
+                  <div class="cinema-loader-title" id="cinema-loader-title">INITIALIZING QUANTUM BUFFER...</div>
+                  <div class="cinema-loader-sub" id="cinema-loader-sub">SYNCHRONIZING AUDIO / VIDEO EMITTERS • STANDBY FOR AUTO-PLAY</div>
+                  <div class="cinema-loader-video-title" id="cinema-loader-video-name">Loading Video...</div>
+                  <div class="cinema-loader-progress-track">
+                    <div class="cinema-loader-progress-bar" id="cinema-loader-bar"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Local HTML5 Video Player -->
+              <video id="cinema-native-player" controls autoplay style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;background:#000;"></video>
+              
+              <!-- Clean YouTube / Rumble Embed Iframe -->
+              <iframe id="cinema-iframe-player" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;display:none;"></iframe>
+            </div>
+
+            <!-- On-Screen Player Meta & Controls Bar -->
+            <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(12,16,28,0.96);border-top:1px solid rgba(255,0,85,0.25);gap:10px;">
+              <div style="display:flex;flex-direction:column;gap:4px;max-width:65%;">
+                <div id="cinema-player-title" style="font-family:var(--font-hud);font-size:1.05rem;color:#fff;letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Video Title</div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:0.75rem;color:#7eb2cc;">
+                  <span id="cinema-player-channel" style="color:#ff3377;font-weight:600;">Channel Name</span>
+                  <span>•</span>
+                  <span id="cinema-player-mode-badge" class="radio-station-badge" style="font-size:0.65rem;padding:2px 6px;background:rgba(0,212,255,0.15);border-color:#00d4ff;color:#00d4ff;">ONLINE STREAM</span>
+                  <span>•</span>
+                  <span id="cinema-player-duration">0:00</span>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:10px;">
+                <!-- Mark as Watched Toggle -->
+                <button id="btn-cinema-player-watched" class="hud-btn" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(0,255,136,0.4);color:#00ff88;">
+                  <span id="cinema-player-watched-icon">👁️</span>
+                  <span id="cinema-player-watched-text">MARK AS WATCHED</span>
+                </button>
+                <button id="btn-cinema-player-download" class="hud-btn hud-btn-primary" style="padding:6px 12px;font-size:0.75rem;border-color:#00ff88;background:rgba(0,255,136,0.15);color:#00ff88;">
+                  <span>⬇️ DOWNLOAD (YT-DLP)</span>
+                </button>
+                <button id="btn-cinema-player-close" class="hud-btn" style="padding:6px 12px;font-size:0.75rem;border-color:#888;" title="Minimize / Close Player Screen">
+                  <span>✕ CLOSE SCREEN</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= TAB VIEW 1: STARK MOVIE VAULT ================= -->
+        <div id="cinema-view-movies" class="cinema-tab-view">
+          <!-- Movies Toolbar -->
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;background:rgba(10,14,24,0.7);border-radius:8px;margin-bottom:16px;border:1px solid rgba(255,170,0,0.25);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-family:var(--font-hud);font-size:0.95rem;color:#ffaa00;letter-spacing:1px;">🎬 MOVIE VAULT</span>
+              <span id="movie-vault-count" style="font-size:0.75rem;color:#7eb2cc;">(Scanning library...)</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="text" id="movie-search-input" class="hud-input" placeholder="🔍 Search movies..." style="width:200px;font-size:0.78rem;">
+              <button id="btn-movie-filter-unwatched" class="hud-btn" style="padding:6px 10px;font-size:0.75rem;border-color:rgba(255,170,0,0.4);color:#ffaa00;" title="Toggle show only unwatched/unseen movies">⚡ UNWATCHED ONLY</button>
+              <button id="btn-movie-resync" class="hud-btn" style="padding:6px 12px;font-size:0.75rem;border-color:rgba(0,212,255,0.4);color:#00d4ff;" title="Rescan Videos\JarvisMovies directory">🔄 RESCAN VAULT</button>
+            </div>
+          </div>
+
+          <!-- Movie Cards Grid -->
+          <div id="cinema-movies-grid" class="movie-grid">
+            <!-- Populated dynamically: Movie Cards with posters, specs, and play buttons -->
+          </div>
+        </div>
+
+        <!-- ================= TAB VIEW 2: YOUTUBE INTEL FEED ================= -->
+        <div id="cinema-view-youtube" class="cinema-tab-view hidden">
+          <!-- YouTube Channel Adder & Filter Bar -->
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:rgba(10,14,24,0.7);border-radius:8px;margin-bottom:14px;border:1px solid rgba(255,0,85,0.25);">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:320px;">
+              <input type="text" id="cinema-youtube-input" class="hud-input" placeholder="Enter YouTube Channel URL or Handle (@Veritasium, @Fireship...)" style="flex:1;font-size:0.8rem;border-color:rgba(255,0,85,0.3);">
+              <button id="btn-cinema-add-youtube" class="hud-btn hud-btn-primary" style="padding:6px 14px;border-color:#ff0055;background:rgba(255,0,85,0.25);color:#fff;white-space:nowrap;font-size:0.78rem;">+ SUBSCRIBE YOUTUBE</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="text" id="cinema-youtube-search-input" class="hud-input" placeholder="🔍 Search YouTube titles..." style="width:190px;font-size:0.78rem;">
+              <button id="btn-cinema-youtube-filter-unwatched" class="hud-btn" style="padding:6px 10px;font-size:0.75rem;border-color:rgba(255,170,0,0.4);color:#ffaa00;">⚡ UNWATCHED ONLY</button>
+              <button id="btn-cinema-youtube-filter-downloaded" class="hud-btn" style="padding:6px 10px;font-size:0.75rem;border-color:rgba(0,255,136,0.4);color:#00ff88;">💾 OFFLINE ONLY</button>
+            </div>
+          </div>
+
+          <!-- YouTube Channel Pills Ribbon -->
+          <div id="cinema-youtube-channel-pills" class="cinema-channel-ribbon" style="display:flex;gap:8px;overflow-x:auto;padding:8px 12px;background:rgba(0,0,0,0.3);border-radius:6px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.06);">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- YouTube Status Bar -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-family:var(--font-hud);font-size:0.92rem;color:#ff3377;letter-spacing:1px;">🔴 YOUTUBE INTELLIGENCE BROADCASTS</span>
+              <span id="cinema-youtube-feed-count" style="font-size:0.75rem;color:#7eb2cc;">(Loading...)</span>
+            </div>
+            <button id="btn-cinema-youtube-refresh-feed" class="hud-btn" style="padding:4px 10px;font-size:0.72rem;border-color:rgba(255,0,85,0.4);color:#ff3377;">⚡ REFRESH FEED</button>
+          </div>
+
+          <!-- YouTube Channels Container -->
+          <div id="cinema-youtube-channels-container" class="cinema-channels-container" style="display:flex;flex-direction:column;gap:20px;">
+            <!-- Populated dynamically: Channel Sections with Video Lists -->
+          </div>
+        </div>
+
+        <!-- ================= TAB VIEW 3: RUMBLE INTELLIGENCE ================= -->
+        <div id="cinema-view-rumble" class="cinema-tab-view hidden">
+          <!-- Rumble Channel Adder & Filter Bar -->
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:rgba(10,14,24,0.7);border-radius:8px;margin-bottom:14px;border:1px solid rgba(0,255,136,0.25);">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:320px;">
+              <input type="text" id="cinema-rumble-input" class="hud-input" placeholder="Enter Rumble Channel URL or handle (e.g. https://rumble.com/c/Redacted)..." style="flex:1;font-size:0.8rem;border-color:rgba(0,255,136,0.3);">
+              <button id="btn-cinema-add-rumble" class="hud-btn hud-btn-primary" style="padding:6px 14px;border-color:#00ff88;background:rgba(0,255,136,0.2);color:#fff;white-space:nowrap;font-size:0.78rem;">+ SUBSCRIBE RUMBLE</button>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input type="text" id="cinema-rumble-search-input" class="hud-input" placeholder="🔍 Search Rumble titles..." style="width:190px;font-size:0.78rem;">
+              <button id="btn-cinema-rumble-filter-unwatched" class="hud-btn" style="padding:6px 10px;font-size:0.75rem;border-color:rgba(255,170,0,0.4);color:#ffaa00;">⚡ UNWATCHED ONLY</button>
+              <button id="btn-cinema-rumble-filter-downloaded" class="hud-btn" style="padding:6px 10px;font-size:0.75rem;border-color:rgba(0,255,136,0.4);color:#00ff88;">💾 OFFLINE ONLY</button>
+            </div>
+          </div>
+
+          <!-- Rumble Channel Pills Ribbon -->
+          <div id="cinema-rumble-channel-pills" class="cinema-channel-ribbon" style="display:flex;gap:8px;overflow-x:auto;padding:8px 12px;background:rgba(0,0,0,0.3);border-radius:6px;margin-bottom:14px;border:1px solid rgba(255,255,255,0.06);">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- Rumble Status Bar -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06);">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-family:var(--font-hud);font-size:0.92rem;color:#00ff88;letter-spacing:1px;">🟢 RUMBLE INDEPENDENT INTELLIGENCE</span>
+              <span id="cinema-rumble-feed-count" style="font-size:0.75rem;color:#7eb2cc;">(Loading...)</span>
+            </div>
+            <button id="btn-cinema-rumble-refresh-feed" class="hud-btn" style="padding:4px 10px;font-size:0.72rem;border-color:rgba(0,255,136,0.4);color:#00ff88;">⚡ REFRESH FEED</button>
+          </div>
+
+          <!-- Rumble Channels Container -->
+          <div id="cinema-rumble-channels-container" class="cinema-channels-container" style="display:flex;flex-direction:column;gap:20px;">
+            <!-- Populated dynamically: Channel Sections with Video Lists -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Cinema Footer -->
+      <div class="hud-modal-footer" style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-top:1px solid rgba(255,0,85,0.2);background:rgba(10,14,24,0.6);">
+        <div style="font-size:0.72rem;color:#6b8e9f;">
+          <span>VAULT STORAGE: </span><span style="color:#00d4ff;font-family:var(--font-mono);">Videos\JarvisCinema\{Channel}\{Title}.mp4</span>
+        </div>
+        <button id="btn-close-cinema-footer" class="hud-btn" style="padding:4px 14px;">CLOSE CINEMA</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main Application Script -->
+  <script src="js/sfx.js?v=16"></script>
+  <script src="js/three-core.js?v=16"></script>
+  <script src="js/hud-canvas.js?v=16"></script>
+  <script src="js/voice-audio.js?v=16"></script>
+  <script src="js/settings-modal.js?v=16"></script>
+  <script src="js/projects-studio.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
+
+</body>
+</html>
